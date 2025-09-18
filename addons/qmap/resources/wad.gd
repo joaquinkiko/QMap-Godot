@@ -1,6 +1,8 @@
 @tool
 @icon("../icons/qmap.svg")
 ## .wad file resource
+##
+## [url]https://developer.valvesoftware.com/wiki/WAD[/url]
 class_name WAD extends Resource
 
 const TEXTURE_NAME_LENGTH := 16
