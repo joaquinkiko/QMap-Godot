@@ -1,6 +1,9 @@
 @tool
 @icon("../icons/qmap.svg")
 ## .map file resource
+##
+## [url]https://quakewiki.org/wiki/Quake_Map_Format[/url]
+## [url]https://developer.valvesoftware.com/wiki/MAP_(file_format)[/url]
 class_name QMap extends Resource
 
 ## Header comments
