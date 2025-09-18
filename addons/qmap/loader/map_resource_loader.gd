@@ -38,7 +38,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 	var plane_pattern = RegEx.new()
 	plane_pattern.compile(r"(\([^\)]*\)|\[[^\)]*\]|\S+)")
 	var vector_pattern = RegEx.new()
-	vector_pattern.compile(r"\w+")
+	vector_pattern.compile(r"[\w\.]+")
 	# Parse entities
 	for r_entity in entity_pattern.search_all(contents):
 		var entity := QEntity.new()
@@ -57,26 +57,32 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 					&"p2":Vector3i.ZERO,
 					&"p3":Vector3i.ZERO,
 					&"texture":"",
-					&"u_offset":Vector4.ZERO,
-					&"v_offset":Vector4.ZERO,
-					&"rotation":0.0,
-					&"u_scale":0.0,
-					&"v_scale":0.0,
+					&"u_offset":Vector4i.ZERO,
+					&"v_offset":Vector4i.ZERO,
+					&"rotation":0,
+					&"u_scale":0,
+					&"v_scale":0,
 					}
 				var r_plane := plane_pattern.search_all(line)
 				if !r_plane.size() >= 9: continue
 				var results := vector_pattern.search_all(r_plane[0].get_string())
 				if results.size() >= 3:
+					if r_plane[0].get_string().contains("."): 
+							plane[&"p1"] = Vector3.ZERO
 					plane[&"p1"].x = results[0].get_string().to_float()
 					plane[&"p1"].y = results[1].get_string().to_float()
 					plane[&"p1"].z = results[2].get_string().to_float()
 				results = vector_pattern.search_all(r_plane[1].get_string())
 				if results.size() >= 3:
+					if r_plane[1].get_string().contains("."): 
+							plane[&"p2"] = Vector3.ZERO
 					plane[&"p2"].x = results[0].get_string().to_float()
 					plane[&"p2"].y = results[1].get_string().to_float()
 					plane[&"p2"].z = results[2].get_string().to_float()
 				results = vector_pattern.search_all(r_plane[2].get_string())
 				if results.size() >= 3:
+					if r_plane[2].get_string().contains("."): 
+							plane[&"p3"] = Vector3.ZERO
 					plane[&"p3"].x = results[0].get_string().to_float()
 					plane[&"p3"].y = results[1].get_string().to_float()
 					plane[&"p3"].z = results[2].get_string().to_float()
@@ -84,23 +90,42 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 				if r_plane[4].get_string().begins_with("["):
 					results = vector_pattern.search_all(r_plane[4].get_string())
 					if results.size() >= 4:
+						if r_plane[4].get_string().contains("."): 
+							plane[&"u_offset"] = Vector4.ZERO
 						plane[&"u_offset"].x = results[0].get_string().to_float()
 						plane[&"u_offset"].y = results[1].get_string().to_float()
 						plane[&"u_offset"].z = results[2].get_string().to_float()
 						plane[&"u_offset"].w = results[3].get_string().to_float()
 				else:
-					plane[&"u_offset"] = r_plane[4].get_string().to_float()
+					if r_plane[4].get_string().contains("."):
+						plane[&"u_offset"] = r_plane[4].get_string().to_float()
+					else:
+						plane[&"u_offset"] = r_plane[4].get_string().to_int()
 				if r_plane[5].get_string().begins_with("["):
 					if results.size() >= 4:
+						if r_plane[5].get_string().contains("."): 
+							plane[&"v_offset"] = Vector4.ZERO
 						plane[&"v_offset"].x = results[0].get_string().to_float()
 						plane[&"v_offset"].y = results[1].get_string().to_float()
 						plane[&"v_offset"].z = results[2].get_string().to_float()
 						plane[&"v_offset"].w = results[3].get_string().to_float()
 				else:
-					plane[&"v_offset"] = r_plane[5].get_string().to_float()
-				plane[&"rotation"] = r_plane[6].get_string().to_float()
-				plane[&"u_scale"] = r_plane[7].get_string().to_float()
-				plane[&"v_scale"] = r_plane[8].get_string().to_float()
+					if r_plane[5].get_string().contains("."):
+						plane[&"v_offset"] = r_plane[4].get_string().to_float()
+					else:
+						plane[&"v_offset"] = r_plane[4].get_string().to_int()
+				if r_plane[6].get_string().contains("."):
+					plane[&"rotation"] = r_plane[6].get_string().to_float()
+				else:
+					plane[&"rotation"] = r_plane[6].get_string().to_int()
+				if r_plane[7].get_string().contains("."):
+					plane[&"u_scale"] = r_plane[7].get_string().to_float()
+				else:
+					plane[&"u_scale"] = r_plane[7].get_string().to_int()
+				if r_plane[8].get_string().contains("."):
+					plane[&"v_scale"] = r_plane[8].get_string().to_float()
+				else:
+					plane[&"v_scale"] = r_plane[8].get_string().to_int()
 				if r_plane.size() >= 12:
 					plane[&"surface_flag"] = r_plane[9].get_string().to_int()
 					plane[&"contents_flag"] = r_plane[10].get_string().to_int()
