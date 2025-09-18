@@ -1,3 +1,4 @@
+@tool
 class_name QPaletteResourceLoader extends ResourceFormatLoader
 
 func _get_recognized_extensions() -> PackedStringArray:

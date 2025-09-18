@@ -1,3 +1,4 @@
+@tool
 class_name QPaletteResourceSaver extends ResourceFormatSaver
 
 func _get_recognized_extensions(resource: Resource) -> PackedStringArray:
