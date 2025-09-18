@@ -49,7 +49,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 				_: entity.properties[r_property.get_string(1)] = r_property.get_string(2).trim_prefix('"').trim_suffix('"').replace("¡", "{").replace("¿", "}")
 		# Parse brushes
 		for r_brush in brush_pattern.search_all(r_entity.get_string(2).strip_edges()):
-			var brush := QBrush.new()
+			var brush: Array[Dictionary]
 			# Parse planes
 			for line in r_brush.get_string().strip_edges().split("\n"):
 				var plane := {
@@ -105,7 +105,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 					plane[&"surface_flag"] = r_plane[9].get_string().to_int()
 					plane[&"contents_flag"] = r_plane[10].get_string().to_int()
 					plane[&"value"] = r_plane[11].get_string().to_int()
-				brush.planes.append(plane)
+				brush.append(plane)
 			entity.brushes.append(brush)
 		resource.entities.append(entity)
 	return resource
