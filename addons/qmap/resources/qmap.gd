@@ -4,7 +4,7 @@
 class_name QMap extends Resource
 
 ## Header comments
-@export var header: String
+@export_multiline var header: String
 ## @deprecated
 @export var game_name: String
 ## @deprecated
