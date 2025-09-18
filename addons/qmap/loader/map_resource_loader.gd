@@ -1,3 +1,5 @@
+@tool
+## Loader for [QMap]
 class_name QMapResourceLoader extends ResourceFormatLoader
 
 func _get_recognized_extensions() -> PackedStringArray:
@@ -15,7 +17,9 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 	var contents: String
 	# Parse header
 	for line: String in FileAccess.get_file_as_string(path).split("\n", false):
-		if line.contains("// entity 0"): break
+		if line.contains("// entity 0"):
+			resource.use_entity_headers = true
+			break
 		if line.split("//", true, 1).size() > 1:
 			if !resource.header.is_empty(): resource.header += "\n"
 			resource.header += line.split("//", true, 1)[1].trim_prefix(" ")
