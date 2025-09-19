@@ -3,6 +3,7 @@
 ## .wad file resource
 ##
 ## [url]https://developer.valvesoftware.com/wiki/WAD[/url]
+## [url]https://www.gamers.org/dEngine/quake/spec/quake-spec34/qkspec_7.htm[/url]
 class_name WAD extends Resource
 
 const TEXTURE_NAME_LENGTH := 16
