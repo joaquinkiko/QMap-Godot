@@ -44,9 +44,16 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			printerr("Cannot load '%s': is not WAD2 or WAD3 format"%path)
 			return resource
 	var palette: QPalette = DEFAULT_PALETTE
-	if resource.format == WAD2 && palette == null:
-		printerr("Error loading '%s': WAD2 requires a palette"%path)
-		return resource
+	if resource.format == WAD2:
+		if palette == null:
+			palette = QPalette.new()
+			palette.colors.resize(256)
+			for n in palette.colors.size():
+				palette.colors[n] = WAD3_TRANSPARENT_COLOR
+		elif palette.colors.size() < 256:
+			palette = palette.duplicate()
+			while palette.colors.size() < 256:
+				palette.colors.append(WAD3_TRANSPARENT_COLOR)
 	# Get rest of header data
 	var entry_count: int = data.decode_u32(4)
 	var dir_offset: int = data.decode_u32(8)
@@ -116,4 +123,16 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			image = Image.create_from_data(dimensions.x, dimensions.y, USE_WAD_MIPMAPS, Image.FORMAT_RGBA8, texture_data)
 			if !USE_WAD_MIPMAPS: image.generate_mipmaps()
 			resource.textures[name] = ImageTexture.create_from_image(image)
+		# Parse palette
+		elif resource.format == WAD2 && entry[&"type"] == WAD2EntryType.COLOR_PALETTE:
+			var wad_palette := QPalette.new()
+			wad_palette.colors.resize(256)
+			for n in 256:
+				wad_palette.colors[n] = Color8(
+					data.decode_u8(entry[&"offset"] + n*3),
+					data.decode_u8(entry[&"offset"] + n*3 + 1),
+					data.decode_u8(entry[&"offset"] + n*3 + 2)
+				)
+			if resource.palettes.is_empty(): palette = wad_palette
+			resource.palettes.append(palette)
 	return resource
