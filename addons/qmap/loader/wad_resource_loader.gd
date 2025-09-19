@@ -1,7 +1,6 @@
 @tool
 class_name WADResourceLoader extends ResourceFormatLoader
 
-const DEFAULT_PALETTE: QPalette =  preload("res://addons/qmap/default_resources/palette.lmp")
 const USE_WAD_MIPMAPS := false # Not working for I'll be damned if I know why
 const WAD2_TRANSPARENT_INDEX := 255
 const WAD3_TRANSPARENT_COLOR := Color8(0, 0, 255)
@@ -43,17 +42,16 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 		_:
 			printerr("Cannot load '%s': is not WAD2 or WAD3 format"%path)
 			return resource
-	var palette: QPalette = DEFAULT_PALETTE
 	if resource.format == WAD2:
-		if palette == null:
-			palette = QPalette.new()
-			palette.colors.resize(256)
-			for n in palette.colors.size():
-				palette.colors[n] = WAD3_TRANSPARENT_COLOR
-		elif palette.colors.size() < 256:
-			palette = palette.duplicate()
-			while palette.colors.size() < 256:
-				palette.colors.append(WAD3_TRANSPARENT_COLOR)
+		if resource.palette == null:
+			resource.palette = QPalette.new()
+			resource.palette.colors.resize(256)
+			for n in resource.palette.colors.size():
+				resource.palette.colors[n] = WAD3_TRANSPARENT_COLOR
+		elif resource.palette.colors.size() < 256:
+			resource.palette = resource.palette.duplicate()
+			while resource.palette.colors.size() < 256:
+				resource.palette.colors.append(WAD3_TRANSPARENT_COLOR)
 	# Get rest of header data
 	var entry_count: int = data.decode_u32(4)
 	var dir_offset: int = data.decode_u32(8)
@@ -96,10 +94,10 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			# For WAD3 grab palette after last mipmap
 			if resource.format == WAD3:
 				var palette_offset: int = entry[&"offset"] + mip_offsets[3] + dimensions.x/8 + dimensions.y/8
-				palette = QPalette.new()
-				palette.colors.resize(data.decode_s16(palette_offset))
-				for n in palette.colors.size():
-					palette.colors[n] = Color8(
+				resource.palette = QPalette.new()
+				resource.palette.colors.resize(data.decode_s16(palette_offset))
+				for n in resource.palette.colors.size():
+					resource.palette.colors[n] = Color8(
 						data.decode_u8(palette_offset + n*3 + 2),
 						data.decode_u8(palette_offset + n*3 + 3),
 						data.decode_u8(palette_offset + n*3 + 4)
@@ -110,15 +108,15 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			for mip_level in mip_map_data.size():
 				for n in mip_map_data[mip_level]:
 					texture_data.append_array([
-						palette.colors[n].r8,
-						palette.colors[n].g8,
-						palette.colors[n].b8
+						resource.palette.colors[n].r8,
+						resource.palette.colors[n].g8,
+						resource.palette.colors[n].b8
 					])
 					if resource.format == WAD2:
 						if n == WAD2_TRANSPARENT_INDEX: texture_data.append(0)
 						else: texture_data.append(255)
 					elif resource.format == WAD3: 
-						if palette.colors[n] == WAD3_TRANSPARENT_COLOR: texture_data.append(0)
+						if resource.palette.colors[n] == WAD3_TRANSPARENT_COLOR: texture_data.append(0)
 						else:  texture_data.append(255)
 			image = Image.create_from_data(dimensions.x, dimensions.y, USE_WAD_MIPMAPS, Image.FORMAT_RGBA8, texture_data)
 			if !USE_WAD_MIPMAPS: image.generate_mipmaps()
@@ -133,6 +131,5 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 					data.decode_u8(entry[&"offset"] + n*3 + 1),
 					data.decode_u8(entry[&"offset"] + n*3 + 2)
 				)
-			if resource.palettes.is_empty(): palette = wad_palette
-			resource.palettes.append(palette)
+			resource.palette = wad_palette
 	return resource

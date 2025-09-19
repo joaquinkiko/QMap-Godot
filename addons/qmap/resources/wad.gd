@@ -14,5 +14,5 @@ enum WadFormat {
 var format := WadFormat.WAD3
 ## Textures sorted by name
 @export var textures: Dictionary[String, Texture2D]
-## WAD2 Palettes
-@export var palettes: Array[QPalette]
+## WAD2 Palette
+@export var palette: QPalette = preload("res://addons/qmap/default_resources/palette.lmp")
