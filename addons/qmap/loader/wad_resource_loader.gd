@@ -99,7 +99,6 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 					)
 			# Construct texture & mipmaps
 			var image: Image
-			var mips: Array[Image]
 			var texture_data: PackedByteArray
 			for mip_level in mip_map_data.size():
 				for n in mip_map_data[mip_level]:
