@@ -5,7 +5,7 @@ const USE_WAD_MIPMAPS := false # Not working for I'll be damned if I know why
 const WAD2_TRANSPARENT_INDEX := 255
 const WAD3_TRANSPARENT_COLOR := Color8(0, 0, 255)
 const WAD2 := WAD.WadFormat.WAD2
-const WAD3 := WAD.WadFormat.WAD3 # WAD3 loading is currently broken...
+const WAD3 := WAD.WadFormat.WAD3
 
 enum WAD2EntryType {
 	COLOR_PALETTE = 0x40,
@@ -98,7 +98,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 				mip_map_level *= 2
 			# For WAD3 grab palette after last mipmap
 			if resource.format == WAD3:
-				var palette_offset: int = entry[&"offset"] + mip_offsets[3] + dimensions.x/8 + dimensions.y/8
+				var palette_offset: int = entry[&"offset"] + mip_offsets[-1] + (dimensions.x/8) * (dimensions.y/8)
 				var palette_size := clampi(data.decode_u16(palette_offset), 0, 256)
 				for n in palette_size:
 					resource.palette.colors[n] = Color8(
