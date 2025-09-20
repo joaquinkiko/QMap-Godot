@@ -1,6 +1,7 @@
 @tool
 class_name WADResourceLoader extends ResourceFormatLoader
 
+const DEFAULT_PALETTE: QPalette = preload("res://addons/qmap/default_resources/palette.lmp")
 const USE_WAD_MIPMAPS := false # Not working for I'll be damned if I know why
 const WAD2_TRANSPARENT_INDEX := 255
 const WAD3_TRANSPARENT_COLOR := Color8(0, 0, 255)
@@ -42,31 +43,27 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 		_:
 			printerr("Cannot load '%s': is not WAD2 or WAD3 format"%path)
 			return resource
+	# Initialize default palette for WAD2 and ensure it has 256 colors
+	var current_palette := DEFAULT_PALETTE
 	if resource.format == WAD2:
-		if resource.palette == null:
-			resource.palette = QPalette.new()
-			resource.palette.colors.resize(256)
-			for n in resource.palette.colors.size():
-				resource.palette.colors[n] = WAD3_TRANSPARENT_COLOR
-		elif resource.palette.colors.size() < 256:
-			resource.palette = resource.palette.duplicate()
-			while resource.palette.colors.size() < 256:
-				resource.palette.colors.append(WAD3_TRANSPARENT_COLOR)
-	elif resource.format == WAD3:
-		resource.palette = QPalette.new()
-		resource.palette.colors.resize(256)
-		for n in resource.palette.colors.size():
-			resource.palette.colors[n] = WAD3_TRANSPARENT_COLOR
+		if current_palette == null:
+			current_palette = QPalette.new_empty(256)
+		elif current_palette.colors.size() < 256:
+			current_palette = current_palette.duplicate()
+			while current_palette.colors.size() < 256:
+				current_palette.colors.append(WAD3_TRANSPARENT_COLOR)
+	elif resource.format == WAD3: current_palette = QPalette.new()
 	# Get rest of header data
 	var entry_count: int = data.decode_u32(4)
 	var dir_offset: int = data.decode_u32(8)
+	resource.dir_offset = dir_offset
 	if data.size() < dir_offset: return resource
 	var entries: Array[Dictionary]
 	# Parse directories
 	for n in entry_count:
 		var entry: Dictionary[StringName, Variant]
 		entry[&"offset"] = data.decode_u32(dir_offset)
-		entry[&"data_size"] = data.decode_u32(dir_offset + 4)
+		entry[&"disk_size"] = data.decode_u32(dir_offset + 4)
 		entry[&"size"] = data.decode_u32(dir_offset + 8)
 		entry[&"type"] = data.decode_u8(dir_offset + 12)
 		entry[&"compression"] = data.decode_u8(dir_offset + 13)
@@ -74,8 +71,10 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 		entry[&"name"] = data.slice(dir_offset + 16, dir_offset + 32).get_string_from_ascii()
 		entries.append(entry)
 		dir_offset += 32
+	resource.dir_entries = entries
 	# Parse entries
 	for entry in entries:
+		if entry[&"disk_size"] == 0: continue
 		# Miptex parsing: https://developer.valvesoftware.com/wiki/Miptex
 		if resource.format == WAD2 && entry[&"type"] == WAD2EntryType.MIP_TEXTURE ||\
 		resource.format == WAD3 && entry[&"type"] == WAD3EntryType.MIP_TEXTURE:
@@ -88,8 +87,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			for n in 4: mip_offsets.append(data.decode_u32(entry[&"offset"] + 24 + 4*n))
 			var mip_map_data: Array[PackedByteArray]
 			var mip_map_level: int = 1
-			if USE_WAD_MIPMAPS: mip_map_data.resize(4)
-			else: mip_map_data.resize(1)
+			mip_map_data.resize(4)
 			for n in mip_map_data.size():
 				mip_map_data[n] = data.slice(
 					entry[&"offset"] + mip_offsets[n],
@@ -99,9 +97,9 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			# For WAD3 grab palette after last mipmap
 			if resource.format == WAD3:
 				var palette_offset: int = entry[&"offset"] + mip_offsets[-1] + (dimensions.x/8) * (dimensions.y/8)
-				var palette_size := clampi(data.decode_u16(palette_offset), 0, 256)
-				for n in palette_size:
-					resource.palette.colors[n] = Color8(
+				current_palette.colors.resize(clampi(data.decode_u16(palette_offset), 0, 256))
+				for n in current_palette.colors.size():
+					current_palette.colors[n] = Color8(
 						data.decode_u8(palette_offset + n*3 + 2),
 						data.decode_u8(palette_offset + n*3 + 3),
 						data.decode_u8(palette_offset + n*3 + 4)
@@ -109,22 +107,27 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			# Construct texture & mipmaps
 			var image: Image
 			var texture_data: PackedByteArray
-			for mip_level in mip_map_data.size():
+			var mipmaps_to_read: int = 1
+			if USE_WAD_MIPMAPS: mipmaps_to_read = mip_map_data.size()
+			for mip_level in mipmaps_to_read:
 				for n in mip_map_data[mip_level]:
 					texture_data.append_array([
-						resource.palette.colors[n].r8,
-						resource.palette.colors[n].g8,
-						resource.palette.colors[n].b8
+						current_palette.colors[n].r8,
+						current_palette.colors[n].g8,
+						current_palette.colors[n].b8
 					])
 					if resource.format == WAD2:
 						if n == WAD2_TRANSPARENT_INDEX: texture_data.append(0)
 						else: texture_data.append(255)
 					elif resource.format == WAD3: 
-						if resource.palette.colors[n] == WAD3_TRANSPARENT_COLOR: texture_data.append(0)
+						if current_palette.colors[n] == WAD3_TRANSPARENT_COLOR: texture_data.append(0)
 						else:  texture_data.append(255)
 			image = Image.create_from_data(dimensions.x, dimensions.y, USE_WAD_MIPMAPS, Image.FORMAT_RGBA8, texture_data)
 			if !USE_WAD_MIPMAPS: image.generate_mipmaps()
 			resource.textures[name] = ImageTexture.create_from_image(image)
+			if resource.format == WAD3: resource.palettes[name] = current_palette
+			resource.mipmap_data[name] = mip_map_data
+			resource.mip_offsets[name] = mip_offsets
 		# Parse palette
 		elif resource.format == WAD2 && entry[&"type"] == WAD2EntryType.COLOR_PALETTE:
 			var wad_palette := QPalette.new()
@@ -135,5 +138,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 					data.decode_u8(entry[&"offset"] + n*3 + 1),
 					data.decode_u8(entry[&"offset"] + n*3 + 2)
 				)
-			resource.palette = wad_palette
+			if entry[&"name"] == "PALETTE" || resource.palettes.is_empty():
+				current_palette = wad_palette
+			resource.palettes[entry[&"name"]] = wad_palette
 	return resource
