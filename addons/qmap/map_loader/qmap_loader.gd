@@ -358,7 +358,8 @@ func _generate_vertices(entity_index: int) -> void:
 					u_axis = Vector3.UP
 					v_sign = signf(dz)
 				v_sign *= signf(uvs[n].get_scale().y)
-				u_axis = u_axis.rotated(planes[n].normal, deg_to_rad(-uvs[n].get_rotation()) * v_sign)
+				if !planes[n].normal == Vector3.ZERO:
+					u_axis = u_axis.rotated(planes[n].normal, deg_to_rad(-uvs[n].get_rotation()) * v_sign)
 				tangents_raw = [u_axis.x, u_axis.y, u_axis.z, v_sign]
 			var tangents: PackedFloat32Array
 			for j in vertices.size():
