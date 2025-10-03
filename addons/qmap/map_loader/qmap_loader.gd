@@ -71,7 +71,7 @@ func generate_map() -> Error:
 		_generate_materials, _entities.size(), -1, false, "Generate Materials")
 	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
-	print("\t-Generated entities in %smsec..."%(Time.get_ticks_msec() - interval_time))
+	print("\t-Generated materials in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Generate brush vertices
 	task_id = WorkerThreadPool.add_group_task(
