@@ -2,6 +2,8 @@ class_name QMapLoader extends Node3D
 
 const _VERTEX_EPSILON := 0.008
 const _VERTEX_EPSILON2 := _VERTEX_EPSILON * _VERTEX_EPSILON
+const _SCALE_FACTOR: float = 1.0 / DEFAULT_SCALE
+const _HYPERPLANE_SIZE: float = 512.0
 
 ## Default QUnit to Godot scaling
 const DEFAULT_SCALE := 32
@@ -264,6 +266,7 @@ func _generate_materials(entity_index: int) -> void:
 		
 		_materials[texture_name] = materials[texture_name]
 
+## Generate vertices for each brush
 func _generate_vertices(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
 	var brushes: Array[Array] = node.get_meta(&"entity_brushes")
@@ -271,8 +274,101 @@ func _generate_vertices(entity_index: int) -> void:
 	var vertex_merge_distance: float = 0
 	if properties.has("_vertex_merge_distance"):
 		vertex_merge_distance = properties["_vertex_merge_distance"]
-	for i in brushes.size(): for n in brushes[i].size():
-			pass
+	var planes: Array[Plane]
+	var uvs: Array[Transform2D]
+	var uv_axes_array: Array[PackedVector3Array]
+	for i in brushes.size():
+		for n in brushes[i].size():
+			var points := PackedVector3Array([
+				brushes[i][n][&"p1"] * _SCALE_FACTOR,
+				brushes[i][n][&"p2"] * _SCALE_FACTOR,
+				brushes[i][n][&"p3"] * _SCALE_FACTOR
+				])
+			var plane := Plane(points[0], points[1], points[2])
+			planes.append(plane)
+			var uv := Transform2D.IDENTITY
+			var uv_axes: PackedVector3Array
+			if brushes[i][n][&"u_offset"] is int || brushes[i][n][&"u_offset"] is float:
+				uv.origin = Vector2(brushes[i][n][&"u_offset"],brushes[i][n][&"v_offset"])
+				var _rotation := deg_to_rad(brushes[i][n][&"rotation"])
+				uv.x = Vector2(cos(_rotation), -sin(_rotation)) * brushes[i][n][&"u_scale"] * _SCALE_FACTOR
+				uv.y = Vector2(sin(_rotation), cos(_rotation)) * brushes[i][n][&"v_scale"] * _SCALE_FACTOR
+			else:
+				uv.origin.x = brushes[i][n][&"u_offset"].w
+				uv.origin.y = brushes[i][n][&"v_offset"].w
+				uv_axes.append(Vector3(brushes[i][n][&"u_offset"].x,brushes[i][n][&"u_offset"].y,brushes[i][n][&"u_offset"].z))
+				uv_axes.append(Vector3(brushes[i][n][&"v_offset"].x,brushes[i][n][&"v_offset"].y,brushes[i][n][&"v_offset"].z))
+				uv.x = Vector2(brushes[i][n][&"u_scale"], 0.0) * _SCALE_FACTOR
+				uv.y = Vector2(0.0, brushes[i][n][&"v_scale"]) * _SCALE_FACTOR
+			uvs.append(uv)
+			uv_axes_array.append(uv_axes)
+		for n in brushes[i].size():
+			var vertices: PackedVector3Array
+			var winding: PackedVector3Array
+			var up := Vector3.UP
+			if abs(planes[n].normal.dot(up)) > 0.9:
+				up = Vector3.RIGHT
+			var right: Vector3 = planes[n].normal.cross(up).normalized()
+			var forward: Vector3 = right.cross(planes[n].normal).normalized()
+			var centroid: Vector3 = planes[n].get_center()
+			winding.append(centroid + (right *  _HYPERPLANE_SIZE) + (forward *  _HYPERPLANE_SIZE))
+			winding.append(centroid + (right * -_HYPERPLANE_SIZE) + (forward *  _HYPERPLANE_SIZE))
+			winding.append(centroid + (right * -_HYPERPLANE_SIZE) + (forward * -_HYPERPLANE_SIZE))
+			winding.append(centroid + (right *  _HYPERPLANE_SIZE) + (forward * -_HYPERPLANE_SIZE))
+			for other_n in brushes[i].size():
+				if other_n == n: continue
+				winding = Geometry3D.clip_polygon(winding, planes[other_n])
+				if winding.is_empty(): break
+			if vertex_merge_distance > 0:
+				var merged_winding : PackedVector3Array
+				var prev_vtx: Vector3 = winding[0].snappedf(vertex_merge_distance)
+				merged_winding.append(prev_vtx)
+				for j in range(1, winding.size()):
+					var cur_vtx : Vector3 = winding[j].snappedf(vertex_merge_distance)
+					if prev_vtx != cur_vtx:
+						merged_winding.append(cur_vtx)
+					prev_vtx = cur_vtx
+				winding = merged_winding
+			vertices = winding
+			var normals: PackedVector3Array
+			normals.resize(vertices.size())
+			normals.fill(planes[n].normal)
+			var tangents_raw: PackedFloat32Array
+			if uv_axes_array[n].size() >= 2:
+				var u_axis: Vector3 = uv_axes_array[n][0].normalized()
+				var v_axis: Vector3 = uv_axes_array[n][1].normalized()
+				var v_sign: float = -signf(normals[n].cross(u_axis).dot(v_axis))
+				tangents_raw = [u_axis.x, u_axis.y, u_axis.z, v_sign]
+			else:
+				var dx := planes[n].normal.dot(Vector3.UP)
+				var dy := planes[n].normal.dot(Vector3.BACK)
+				var dz := planes[n].normal.dot(Vector3.RIGHT)
+				var dxa := absf(dx)
+				var dya := absf(dy)
+				var dza := absf(dz)
+				var u_axis: Vector3
+				var v_sign: float = 0.0
+				if dya >= dxa and dya >= dza:
+					u_axis = Vector3.RIGHT
+					v_sign = signf(dy)
+				elif dxa >= dya and dxa >= dza:
+					u_axis = Vector3.RIGHT
+					v_sign = -signf(dx)
+				elif dza >= dya and dza >= dxa:
+					u_axis = Vector3.UP
+					v_sign = signf(dz)
+				v_sign *= signf(uvs[n].get_scale().y)
+				u_axis = u_axis.rotated(planes[n].normal, deg_to_rad(-uvs[n].get_rotation()) * v_sign)
+				tangents_raw = [u_axis.x, u_axis.y, u_axis.z, v_sign]
+			var tangents: PackedFloat32Array
+			for j in vertices.size():
+				tangents.append(tangents_raw[1]) # Y
+				tangents.append(tangents_raw[2]) # Z
+				tangents.append(tangents_raw[0]) # X
+				tangents.append(tangents_raw[3]) # W
+	node.set_meta(&"brush_planes", planes)
+	node.set_meta(&"brush_uvs", uvs)
+	node.set_meta(&"brush_uv_axes", uv_axes_array)
 
 func _apply_origins(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
@@ -327,6 +423,9 @@ func _clean_up_meta(entity_index: int) -> void:
 	_entities[entity_index].remove_meta(&"entity_properties")
 	_entities[entity_index].remove_meta(&"entity_classname")
 	_entities[entity_index].remove_meta(&"entity_brushes")
+	_entities[entity_index].remove_meta(&"brush_planes")
+	_entities[entity_index].remove_meta(&"brush_uvs")
+	_entities[entity_index].remove_meta(&"brush_uv_axes")
 
 ## Adds nodes into [SceneTree]. MUST call from main thread
 func _add_to_scene_tree(entity_index: int) -> void:
