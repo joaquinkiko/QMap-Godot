@@ -1,5 +1,8 @@
 class_name QMapLoader extends Node3D
 
+const _VERTEX_EPSILON := 0.008
+const _VERTEX_EPSILON2 := _VERTEX_EPSILON * _VERTEX_EPSILON
+
 ## Default QUnit to Godot scaling
 const DEFAULT_SCALE := 32
 ## Default path for scenes
@@ -14,6 +17,12 @@ const DEFAULT_PATH_AUDIO := "res://audio"
 const DEFAULT_PATH_WADS := "res://wads"
 ## Default path for models
 const DEFAULT_PATH_MODELS := "res://models"
+## Name of Skip texture
+const TEXTURENAME_SKIP := "skip"
+## Name of clip texture
+const TEXTURENAME_CLIP := "clip"
+## Name of origin texture
+const TEXTURENAME_ORIGIN := "origin"
 
 ## [QMap] to load
 @export var map: QMap
