@@ -74,98 +74,84 @@ func generate_map() -> Error:
 	# Load internal wads
 	task_id = WorkerThreadPool.add_group_task(
 		_load_internal_wads, map.entities.size(), -1, false, "Load internal wads")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Loaded wads in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Generate entities
 	task_id = WorkerThreadPool.add_group_task(
 		_generate_entity, map.entities.size(), -1, false, "Generate entities")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Generated entities in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Generate Materials
 	task_id = WorkerThreadPool.add_group_task(
 		_generate_materials, _entities.size(), -1, false, "Generate Materials")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Generated materials in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Generate brush vertices
 	task_id = WorkerThreadPool.add_group_task(
 		_generate_vertices, _entities.size(), -1, false, "Generate brush vertices")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Generated vertices in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Determine entity origins
 	task_id = WorkerThreadPool.add_group_task(
 		_apply_origins, _entities.size(), -1, false, "Determine entity origins")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Applied origins in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Wind faces
 	task_id = WorkerThreadPool.add_group_task(
 		_wind_faces, _entities.size(), -1, false, "Wind faces")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Wound faces in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Generate geometry
 	task_id = WorkerThreadPool.add_group_task(
 		_generate_geometry, _entities.size(), -1, false, "Generate geometry")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Generated geometry in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Generate occlusion
 	task_id = WorkerThreadPool.add_group_task(
 		_generate_occlusion, _entities.size(), -1, false, "Generate occlusion")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Generated occlusion in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Generate collisions
 	task_id = WorkerThreadPool.add_group_task(
 		_generate_collisions, _entities.size(), -1, false, "Generate collisions")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Generated collisions in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Generate pathfinding
 	task_id = WorkerThreadPool.add_group_task(
 		_generate_pathfinding, _entities.size(), -1, false, "Generate pathfinding")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Generated pathfinding in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Unwrap UV2s
 	task_id = WorkerThreadPool.add_group_task(
 		_unwrap_uv2, _entities.size(), -1, false, "Unwrap UV2s")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Unwrapped UV2s in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Apply smoothing
 	task_id = WorkerThreadPool.add_group_task(
 		_apply_smoothing, _entities.size(), -1, false, "Apply smoothing")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Applied smoothing in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Generate lighting
 	task_id = WorkerThreadPool.add_group_task(
 		_generate_lighting, _entities.size(), -1, false, "Generate lighting")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Generated lighting in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Clean-up Meta
 	task_id = WorkerThreadPool.add_group_task(
 		_clean_up_meta, _entities.size(), -1, false, "Clean-up Meta")
-	#while !WorkerThreadPool.is_group_task_completed(task_id): await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Cleaned-up metadata in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
