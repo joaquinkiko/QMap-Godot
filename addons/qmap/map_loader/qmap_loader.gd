@@ -54,20 +54,23 @@ func generate_map() -> Error:
 	var interval_time := start_time
 	print("Generating map '%s'..."%ResourceUID.get_id_path(ResourceUID.text_to_id(map_path)))
 	var task_id: int
-	# Load Map
-	_load_map()
-	if map == null:
-		printerr("Missing MAP to load")
-		return ERR_INVALID_DATA
-	print("\t-Loaded Map file in %smsec..."%(Time.get_ticks_msec() - interval_time))
+	var map_task_id: int
+	var fgd_task_id: int
+	# Load Map and FGD
+	fgd_task_id = WorkerThreadPool.add_task(_load_fgd, false, "Load FGD")
+	map_task_id = WorkerThreadPool.add_task(_load_map, false, "Load map")
+	WorkerThreadPool.wait_for_task_completion(fgd_task_id)
+	print("\t-Loaded FGD in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
-	# Load FGD
-	_load_fgd()
+	WorkerThreadPool.wait_for_task_completion(map_task_id)
+	print("\t-Loaded MAP in %smsec..."%(Time.get_ticks_msec() - interval_time))
+	interval_time = Time.get_ticks_msec()
 	if fgd == null:
 		printerr("Missing FGD to load map")
 		return ERR_INVALID_DATA
-	print("\t-Loaded FGD in %smsec..."%(Time.get_ticks_msec() - interval_time))
-	interval_time = Time.get_ticks_msec()
+	if map == null:
+		printerr("Missing MAP to load")
+		return ERR_INVALID_DATA
 	# Load internal wads
 	task_id = WorkerThreadPool.add_group_task(
 		_load_internal_wads, map.entities.size(), -1, false, "Load internal wads")
