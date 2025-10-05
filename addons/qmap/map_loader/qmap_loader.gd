@@ -1,5 +1,15 @@
 class_name QMapLoader extends Node3D
 
+class EntityBrush extends RefCounted:
+	var planes: Array[BrushPlane]
+
+class BrushPlane extends RefCounted:
+	var points: PackedVector3Array
+	var uv_scale: Vector2
+	var plane: Plane
+	var rot: float
+	var texturename: StringName
+
 const _VERTEX_EPSILON := 0.008
 const _VERTEX_EPSILON2 := _VERTEX_EPSILON * _VERTEX_EPSILON
 const _SCALE_FACTOR: float = 1.0 / DEFAULT_SCALE
@@ -312,6 +322,29 @@ func _generate_vertices(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
 	var brushes: Array[Array] = node.get_meta(&"entity_brushes")
 	var properties: Dictionary[StringName, Variant] = node.get_meta(&"entity_properties")
+	var solid_brushes: Array[EntityBrush]
+	for i in brushes.size():
+		var brush := EntityBrush.new()
+		for j in brushes[i].size():
+			var brush_plane := BrushPlane.new()
+			brush_plane.texturename = brushes[i][j][&"texture"]
+			brush_plane.uv_scale = Vector2(
+				brushes[i][j][&"u_scale"],
+				brushes[i][j][&"v_scale"]
+				)
+			brush_plane.points = [
+				brushes[i][j][&"p1"],
+				brushes[i][j][&"p2"],
+				brushes[i][j][&"p3"]
+				]
+			brush_plane.rot = deg_to_rad(brushes[i][j][&"rotation"])
+			brush_plane.plane = Plane(brush_plane.points[0], brush_plane.points[1], brush_plane.points[2])
+			
+			brush.planes.append(brush_plane)
+			
+		solid_brushes.append(brush)
+	
+	node.set_meta(&"solid_brushes", solid_brushes)
 
 func _apply_origins(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
@@ -366,6 +399,7 @@ func _clean_up_meta(entity_index: int) -> void:
 	_entities[entity_index].remove_meta(&"entity_properties")
 	_entities[entity_index].remove_meta(&"entity_classname")
 	_entities[entity_index].remove_meta(&"entity_brushes")
+	_entities[entity_index].remove_meta(&"solid_brushes")
 
 ## Adds nodes into [SceneTree]. MUST call from main thread
 func _add_to_scene_tree(entity_index: int) -> void:
