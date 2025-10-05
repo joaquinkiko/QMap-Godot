@@ -79,18 +79,18 @@ func generate_map() -> Error:
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Loaded wads in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
-	# Generate entities
-	task_id = WorkerThreadPool.add_group_task(
-		_generate_entity, map.entities.size(), -1, false, "Generate entities")
-	WorkerThreadPool.wait_for_group_task_completion(task_id)
-	print("\t-Generated entities in %smsec..."%(Time.get_ticks_msec() - interval_time))
-	interval_time = Time.get_ticks_msec()
 	# Generate Materials
 	for i in _entities.size(): _get_texture_list(i)
 	task_id = WorkerThreadPool.add_group_task(
 		_generate_materials, _texturepaths.size(), -1, false, "Generate Materials")
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Generated materials in %smsec..."%(Time.get_ticks_msec() - interval_time))
+	interval_time = Time.get_ticks_msec()
+	# Generate entities
+	task_id = WorkerThreadPool.add_group_task(
+		_generate_entity, map.entities.size(), -1, false, "Generate entities")
+	WorkerThreadPool.wait_for_group_task_completion(task_id)
+	print("\t-Generated entities in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Generate brush vertices
 	task_id = WorkerThreadPool.add_group_task(
@@ -286,8 +286,8 @@ func _get_texture_list(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
 	var brushes: Array[Array] = node.get_meta(&"entity_brushes")
 	for brush in brushes: for plane in brush:
-		if _texturepaths.has(plane[&"texture"]): continue
-		_texturepaths.append(plane[&"texture"])
+		if _texturepaths.has(plane[&"texture"].to_lower()): continue
+		_texturepaths.append(plane[&"texture"].to_lower())
 
 ## Generate materials for textures
 func _generate_materials(texture_index: int) -> void:
