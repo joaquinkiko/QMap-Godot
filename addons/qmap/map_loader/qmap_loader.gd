@@ -27,11 +27,16 @@ const TEXTURENAME_CLIP := "clip"
 const TEXTURENAME_ORIGIN := "origin"
 
 ## [QMap] to load
-@export var map: QMap
+@export_file("*.map", "*.MAP") var map_path: String
+var map: QMap
+## [FGD] to load on startup
+@export_file("*.fgd", "*.FGD") var fgd_path: String
 ## [FGD] to initialize entities with
-@export var fgd: FGD
+var fgd: FGD
+## [WAD] file paths to auto load on startup
+@export_file("*.wad","*.WAD") var wad_paths: PackedStringArray
 ## [WAD] files to read textures from
-@export var wads: Array[WAD]
+var wads: Array[WAD]
 @export_group("Additional Settings")
 ## When true will load any [WAD] listed in [QMap] properties under the key "wads"
 @export var auto_load_map_wads: bool = true
@@ -47,11 +52,22 @@ func _ready() -> void:
 func generate_map() -> Error:
 	var start_time := Time.get_ticks_msec()
 	var interval_time := start_time
-	print("Generating map '%s'..."%map.resource_path)
-	if map == null || fgd == null:
-		printerr("Must have both Map and FGD to generate map")
-		return ERR_INVALID_DATA
+	print("Generating map '%s'..."%ResourceUID.get_id_path(ResourceUID.text_to_id(map_path)))
 	var task_id: int
+	# Load Map
+	_load_map()
+	if map == null:
+		printerr("Missing MAP to load")
+		return ERR_INVALID_DATA
+	print("\t-Loaded Map file in %smsec..."%(Time.get_ticks_msec() - interval_time))
+	interval_time = Time.get_ticks_msec()
+	# Load FGD
+	_load_fgd()
+	if fgd == null:
+		printerr("Missing FGD to load map")
+		return ERR_INVALID_DATA
+	print("\t-Loaded FGD in %smsec..."%(Time.get_ticks_msec() - interval_time))
+	interval_time = Time.get_ticks_msec()
 	# Load internal wads
 	task_id = WorkerThreadPool.add_group_task(
 		_load_internal_wads, map.entities.size(), -1, false, "Load internal wads")
@@ -157,18 +173,36 @@ func generate_map() -> Error:
 	print("Finished generating map in %smsec!"%(Time.get_ticks_msec() - start_time))
 	return OK
 
+## Loads Map
+func _load_map() -> void:
+	if ResourceLoader.exists(map_path): map = ResourceLoader.load(map_path)
+
+## Loads FGD
+func _load_fgd() -> void:
+	print("\t\t-Loading FGD: '%s'..."%ResourceUID.get_id_path(ResourceUID.text_to_id(fgd_path)))
+	if ResourceLoader.exists(fgd_path): fgd = ResourceLoader.load(fgd_path)
+
 ## Loads wads from entites with "wad" property
 func _load_internal_wads(entity_index: int) -> void:
+	wads.clear()
+	for path in wad_paths:
+		if ResourceLoader.exists(path):
+			print("\t\t-Loading wad: '%s'..."%ResourceUID.get_id_path(ResourceUID.text_to_id(path)))
+			wads.append(ResourceLoader.load(path))
+		else: print("\t\t-Missing wad: '%s'!"%ResourceUID.get_id_path(ResourceUID.text_to_id(path)))
 	var entity: QEntity = map.entities[entity_index]
 	if entity.properties.has("wad"):
-		if ResourceLoader.exists("%s/%s"%[DEFAULT_PATH_WADS, entity.properties["wad"]]):
-			var has_wad: bool
-			for wad in wads:
-				if wad.resource_path == "%s/%s"%[DEFAULT_PATH_WADS, entity.properties["wad"]]:
-					has_wad = true
-					continue
-			if !has_wad:
-				wads.append(ResourceLoader.load("%s/%s"%[DEFAULT_PATH_WADS, entity.properties["wad"]]))
+		for path in entity.properties["wad"].split(";", false):
+			if ResourceLoader.exists("%s/%s"%[DEFAULT_PATH_WADS, path]):
+				var has_wad: bool
+				for wad in wads:
+					if wad.resource_path == "%s/%s"%[DEFAULT_PATH_WADS, path]:
+						has_wad = true
+						break
+				if !has_wad:
+					print("\t\t-Loading wad: '%s'..."%path)
+					wads.append(ResourceLoader.load("%s/%s"%[DEFAULT_PATH_WADS, path]))
+			else: print("\t\t-Missing wad: '%s'!"%path)
 
 ## Generate nodes for entities and adds them to the scene tree
 func _generate_entity(entity_index: int) -> void:
