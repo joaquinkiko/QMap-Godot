@@ -4,6 +4,7 @@ const _VERTEX_EPSILON := 0.008
 const _VERTEX_EPSILON2 := _VERTEX_EPSILON * _VERTEX_EPSILON
 const _SCALE_FACTOR: float = 1.0 / DEFAULT_SCALE
 const _HYPERPLANE_SIZE: float = 512.0
+const _DEFAULT_MATERIAL := preload("res://addons/qmap/default_resources/default_material.tres")
 
 ## Default QUnit to Godot scaling
 const DEFAULT_SCALE := 32
@@ -43,6 +44,7 @@ var wads: Array[WAD]
 
 var _entities: Array[Node]
 var _materials: Dictionary[StringName, Material]
+var _texturepaths: PackedStringArray
 
 ## Temporary for testing, normally map loading should be called by user
 func _ready() -> void:
@@ -84,8 +86,9 @@ func generate_map() -> Error:
 	print("\t-Generated entities in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
 	# Generate Materials
+	for i in _entities.size(): _get_texture_list(i)
 	task_id = WorkerThreadPool.add_group_task(
-		_generate_materials, _entities.size(), -1, false, "Generate Materials")
+		_generate_materials, _texturepaths.size(), -1, false, "Generate Materials")
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	print("\t-Generated materials in %smsec..."%(Time.get_ticks_msec() - interval_time))
 	interval_time = Time.get_ticks_msec()
@@ -278,16 +281,31 @@ func _generate_entity(entity_index: int) -> void:
 	node.name = entity.classname
 	_entities.append(node)
 
-func _generate_materials(entity_index: int) -> void:
+## Get list of textures to generate
+func _get_texture_list(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
 	var brushes: Array[Array] = node.get_meta(&"entity_brushes")
-	var materials: Dictionary[StringName, Material]
-	for brush in brushes: for plane in brush: materials[plane[&"texture"]] = null
-	for texture_name in materials.keys():
-		if _materials.has(texture_name): continue
-		materials[texture_name] = PlaceholderMaterial.new()
-		
-		_materials[texture_name] = materials[texture_name]
+	for brush in brushes: for plane in brush:
+		if _texturepaths.has(plane[&"texture"]): continue
+		_texturepaths.append(plane[&"texture"])
+
+## Generate materials for textures
+func _generate_materials(texture_index: int) -> void:
+	var texture_name := _texturepaths[texture_index]
+	if texture_name == TEXTURENAME_CLIP || texture_name == TEXTURENAME_SKIP || texture_name == TEXTURENAME_ORIGIN:
+		var transparent := _DEFAULT_MATERIAL.duplicate()
+		transparent.set("albedo_color", Color(1,1,1,0))
+		transparent.set("transparency", 1)
+		_materials[texture_name] = transparent
+		return
+	for wad in wads: if wad.textures.has(StringName(texture_name)):
+		_materials[texture_name] = _DEFAULT_MATERIAL.duplicate()
+		_materials[texture_name].set("albedo_texture", wad.textures[StringName(texture_name)])
+		return
+	# Add in loading Textures and Materials without Wads
+	
+	print("\t\t-Missing texture: %s"%texture_name)
+	_materials[texture_name] = PlaceholderMaterial.new()
 
 ## Generate vertices for each brush
 func _generate_vertices(entity_index: int) -> void:
