@@ -280,9 +280,9 @@ func _generate_vertices(entity_index: int) -> void:
 	for i in brushes.size():
 		for n in brushes[i].size():
 			var points := PackedVector3Array([
-				brushes[i][n][&"p1"] * _SCALE_FACTOR,
-				brushes[i][n][&"p2"] * _SCALE_FACTOR,
-				brushes[i][n][&"p3"] * _SCALE_FACTOR
+				Vector3(brushes[i][n][&"p1"]) * _SCALE_FACTOR,
+				Vector3(brushes[i][n][&"p2"]) * _SCALE_FACTOR,
+				Vector3(brushes[i][n][&"p3"]) * _SCALE_FACTOR
 				])
 			var plane := Plane(points[0], points[1], points[2])
 			planes.append(plane)
@@ -291,8 +291,8 @@ func _generate_vertices(entity_index: int) -> void:
 			if brushes[i][n][&"u_offset"] is int || brushes[i][n][&"u_offset"] is float:
 				uv.origin = Vector2(brushes[i][n][&"u_offset"],brushes[i][n][&"v_offset"])
 				var _rotation := deg_to_rad(brushes[i][n][&"rotation"])
-				uv.x = Vector2(cos(_rotation), -sin(_rotation)) * brushes[i][n][&"u_scale"] * _SCALE_FACTOR
-				uv.y = Vector2(sin(_rotation), cos(_rotation)) * brushes[i][n][&"v_scale"] * _SCALE_FACTOR
+				uv.x = Vector2(cos(_rotation), -sin(_rotation)) * float(brushes[i][n][&"u_scale"]) * _SCALE_FACTOR
+				uv.y = Vector2(sin(_rotation), cos(_rotation)) * float(brushes[i][n][&"v_scale"]) * _SCALE_FACTOR
 			else:
 				uv.origin.x = brushes[i][n][&"u_offset"].w
 				uv.origin.y = brushes[i][n][&"v_offset"].w
@@ -358,8 +358,7 @@ func _generate_vertices(entity_index: int) -> void:
 					u_axis = Vector3.UP
 					v_sign = signf(dz)
 				v_sign *= signf(uvs[n].get_scale().y)
-				if !planes[n].normal == Vector3.ZERO:
-					u_axis = u_axis.rotated(planes[n].normal, deg_to_rad(-uvs[n].get_rotation()) * v_sign)
+				u_axis = u_axis.rotated(normals[n], deg_to_rad(-uvs[n].get_rotation()) * v_sign)
 				tangents_raw = [u_axis.x, u_axis.y, u_axis.z, v_sign]
 			var tangents: PackedFloat32Array
 			for j in vertices.size():
