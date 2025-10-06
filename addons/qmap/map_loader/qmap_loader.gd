@@ -502,6 +502,9 @@ func _generate_geometry(entity_index: int) -> void:
 			normals.fill(face.plane.normal)
 			arrays[Mesh.ARRAY_NORMAL] = normals
 			mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+			var surface_index: int = mesh.get_surface_count() - 1
+			mesh.surface_set_name(surface_index, face.texturename.to_lower())
+			mesh.surface_set_material(surface_index, _materials[StringName(face.texturename.to_lower())])
 		var instance := MeshInstance3D.new()
 		instance.mesh = mesh
 		node.add_child(instance)
