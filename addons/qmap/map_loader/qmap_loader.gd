@@ -2,6 +2,7 @@ class_name QMapLoader extends Node3D
 
 class EntityBrush extends RefCounted:
 	var faces: Array[BrushFace]
+	var aabb: AABB
 
 class BrushFace extends RefCounted:
 	var points: PackedVector3Array
@@ -234,56 +235,58 @@ func _generate_entity(entity_index: int) -> void:
 	for key in entity.properties.keys(): 
 		var raw_value := entity.properties[key]
 		var value: Variant
-		match fgd_class.properties[key].type:
-			FGDEntityProperty.PropertyType.INTEGER: 
-				value = raw_value.to_int()
-			FGDEntityProperty.PropertyType.FLOAT: 
-				value = raw_value.to_float()
-			FGDEntityProperty.PropertyType.FLAGS: 
-				value = raw_value.to_int()
-			FGDEntityProperty.PropertyType.CHOICES: 
-				FGDEntityProperty.PropertyType
-			FGDEntityProperty.PropertyType.ANGLE:
-				var nums: PackedFloat64Array
-				for num in raw_value.split(" ", false):
-					nums.append(num.to_float())
-				value = Vector3(nums[0], nums[1], nums[2])
-			FGDEntityProperty.PropertyType.VECTOR: 
-				var nums: PackedFloat64Array
-				for num in raw_value.split(" ", false):
-					nums.append(num.to_float())
-				value = Vector3(nums[0], nums[1], nums[2])
-			FGDEntityProperty.PropertyType.COLOR_255: 
-				var nums: PackedFloat64Array
-				for num in raw_value.split(" ", false):
-					nums.append(num.to_int())
-				value = Color8(nums[0], nums[1], nums[2])
-			FGDEntityProperty.PropertyType.COLOR_1: 
-				var nums: PackedFloat64Array
-				for num in raw_value.split(" ", false):
-					nums.append(num.to_float())
-				value = Color(nums[0], nums[1], nums[2])
-			FGDEntityProperty.PropertyType.DECAL:
-				if ResourceLoader.exists("%s/%s"%[DEFAULT_PATH_TEXTURES, raw_value]):
-					value = ResourceLoader.load("%s/%s"%[DEFAULT_PATH_TEXTURES, raw_value])
-				else: value = null
-			FGDEntityProperty.PropertyType.STUDIO:
-				if ResourceLoader.exists("%s/%s"%[DEFAULT_PATH_MODELS, raw_value]):
-					value = ResourceLoader.load("%s/%s"%[DEFAULT_PATH_MODELS, raw_value])
-				else: value = null
-			FGDEntityProperty.PropertyType.SPRITE:
-				if ResourceLoader.exists("%s/%s"%[DEFAULT_PATH_TEXTURES, raw_value]):
-					value = ResourceLoader.load("%s/%s"%[DEFAULT_PATH_TEXTURES, raw_value])
-				else: value = null
-			FGDEntityProperty.PropertyType.SOUND:
-				if ResourceLoader.exists("%s/%s"%[DEFAULT_PATH_AUDIO, raw_value]):
-					value = ResourceLoader.load("%s/%s"%[DEFAULT_PATH_AUDIO, raw_value])
-				else: value = null
-			FGDEntityProperty.PropertyType.SCALE:
-				if key == "scale":
-					value = Vector3.ONE * raw_value.to_float()
-				else: value = raw_value.to_float()
-			_: value = raw_value
+		if fgd_class.properties.has(key):
+			match fgd_class.properties[key].type:
+				FGDEntityProperty.PropertyType.INTEGER: 
+					value = raw_value.to_int()
+				FGDEntityProperty.PropertyType.FLOAT: 
+					value = raw_value.to_float()
+				FGDEntityProperty.PropertyType.FLAGS: 
+					value = raw_value.to_int()
+				FGDEntityProperty.PropertyType.CHOICES: 
+					FGDEntityProperty.PropertyType
+				FGDEntityProperty.PropertyType.ANGLE:
+					var nums: PackedFloat64Array
+					for num in raw_value.split(" ", false):
+						nums.append(num.to_float())
+					value = Vector3(nums[0], nums[1], nums[2])
+				FGDEntityProperty.PropertyType.VECTOR: 
+					var nums: PackedFloat64Array
+					for num in raw_value.split(" ", false):
+						nums.append(num.to_float())
+					value = Vector3(nums[0], nums[1], nums[2])
+				FGDEntityProperty.PropertyType.COLOR_255: 
+					var nums: PackedFloat64Array
+					for num in raw_value.split(" ", false):
+						nums.append(num.to_int())
+					value = Color8(nums[0], nums[1], nums[2])
+				FGDEntityProperty.PropertyType.COLOR_1: 
+					var nums: PackedFloat64Array
+					for num in raw_value.split(" ", false):
+						nums.append(num.to_float())
+					value = Color(nums[0], nums[1], nums[2])
+				FGDEntityProperty.PropertyType.DECAL:
+					if ResourceLoader.exists("%s/%s"%[DEFAULT_PATH_TEXTURES, raw_value]):
+						value = ResourceLoader.load("%s/%s"%[DEFAULT_PATH_TEXTURES, raw_value])
+					else: value = null
+				FGDEntityProperty.PropertyType.STUDIO:
+					if ResourceLoader.exists("%s/%s"%[DEFAULT_PATH_MODELS, raw_value]):
+						value = ResourceLoader.load("%s/%s"%[DEFAULT_PATH_MODELS, raw_value])
+					else: value = null
+				FGDEntityProperty.PropertyType.SPRITE:
+					if ResourceLoader.exists("%s/%s"%[DEFAULT_PATH_TEXTURES, raw_value]):
+						value = ResourceLoader.load("%s/%s"%[DEFAULT_PATH_TEXTURES, raw_value])
+					else: value = null
+				FGDEntityProperty.PropertyType.SOUND:
+					if ResourceLoader.exists("%s/%s"%[DEFAULT_PATH_AUDIO, raw_value]):
+						value = ResourceLoader.load("%s/%s"%[DEFAULT_PATH_AUDIO, raw_value])
+					else: value = null
+				FGDEntityProperty.PropertyType.SCALE:
+					if key == "scale":
+						value = Vector3.ONE * raw_value.to_float()
+					else: value = raw_value.to_float()
+				_: value = raw_value
+		else: value = raw_value
 		parsed_properties[key] = value
 		if fgd_class.properties.has(key): node.set(key, value)
 	node.set_meta(&"entity_properties", parsed_properties)
@@ -402,16 +405,48 @@ func _generate_vertices(entity_index: int) -> void:
 			sorted_vertices.append(face.vertices[face.vertices.size() - 2])
 			sorted_vertices.append(face.vertices[face.vertices.size() - 1])
 			face.vertices = sorted_vertices
+		# Get AABB
+		var all_vertices: PackedVector3Array
+		for face in brush.faces: all_vertices.append_array(face.vertices)
+		if all_vertices.size() > 0:
+			all_vertices.sort()
+			brush.aabb = AABB(all_vertices[0], all_vertices[all_vertices.size() - 1])
+		else: brush.aabb = AABB(Vector3.ZERO,Vector3.ZERO)
 	node.set_meta(&"solid_brushes", solid_brushes)
 
 func _apply_origins(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
-	var brushes: Array[Array] = node.get_meta(&"entity_brushes")
-	if brushes.size() == 0: return
+	var brushes: Array[EntityBrush] = node.get_meta(&"solid_brushes")
 	var properties: Dictionary[StringName, Variant] = node.get_meta(&"entity_properties")
-	if brushes.size() == 0: return
 	var origin := Vector3.ZERO
-	if properties.has("origin"): origin = properties["origin"]
+	if properties.has("origin"):
+		if properties["origin"] is String:
+			var nums: PackedFloat64Array
+			for num in properties["origin"].split(" ", false):
+				nums.append(num.to_float())
+			origin = Vector3(nums[0], nums[1], nums[2]) * _SCALE_FACTOR
+		elif properties["origin"] is Vector3 || properties["origin"] is Vector3i:
+			origin = properties["origin"] * _SCALE_FACTOR
+	elif brushes.size() > 0:
+		var has_origin_brush: bool
+		for brush in brushes:
+			var is_origin_brush: bool
+			for face in brush.faces: if face.texturename == TEXTURENAME_ORIGIN:
+				is_origin_brush = true
+				break
+			if is_origin_brush:
+				has_origin_brush = true
+				origin = brush.aabb.get_center()
+				break
+		if !has_origin_brush:
+			var all_vertices: PackedVector3Array
+			for brush in brushes: for face in brush.faces:
+				all_vertices.append_array(face.vertices)
+			if all_vertices.size() > 0:
+				all_vertices.sort()
+				origin = AABB(all_vertices[0], all_vertices[all_vertices.size() - 1]).get_center()
+	node.set_meta(&"entity_origin", origin)
+	if brushes.size() == 0: node.position = origin
 
 ## Sort and wind faces for generation
 func _wind_faces(entity_index: int) -> void:
@@ -505,6 +540,7 @@ func _clean_up_meta(entity_index: int) -> void:
 	_entities[entity_index].remove_meta(&"entity_classname")
 	_entities[entity_index].remove_meta(&"entity_brushes")
 	_entities[entity_index].remove_meta(&"solid_brushes")
+	_entities[entity_index].remove_meta(&"entity_origin")
 	map = null
 	wads.clear()
 	fgd = null
