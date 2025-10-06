@@ -1,9 +1,9 @@
 class_name QMapLoader extends Node3D
 
 class EntityBrush extends RefCounted:
-	var planes: Array[BrushPlane]
+	var faces: Array[BrushFace]
 
-class BrushPlane extends RefCounted:
+class BrushFace extends RefCounted:
 	var points: PackedVector3Array
 	var uv_scale: Vector2
 	var plane: Plane
@@ -328,36 +328,36 @@ func _generate_vertices(entity_index: int) -> void:
 	for i in brushes.size():
 		var brush := EntityBrush.new()
 		for j in brushes[i].size():
-			var brush_plane := BrushPlane.new()
-			brush_plane.texturename = brushes[i][j][&"texture"]
-			brush_plane.uv_scale = Vector2(
+			var face := BrushFace.new()
+			face.texturename = brushes[i][j][&"texture"]
+			face.uv_scale = Vector2(
 				brushes[i][j][&"u_scale"],
 				brushes[i][j][&"v_scale"]
 				)
-			brush_plane.points = [
+			face.points = [
 				brushes[i][j][&"p1"],
 				brushes[i][j][&"p2"],
 				brushes[i][j][&"p3"]
 				]
-			brush_plane.rot = deg_to_rad(brushes[i][j][&"rotation"])
-			brush_plane.plane = Plane(brush_plane.points[0], brush_plane.points[1], brush_plane.points[2])
-			brush.planes.append(brush_plane)
+			face.rot = deg_to_rad(brushes[i][j][&"rotation"])
+			face.plane = Plane(face.points[0], face.points[1], face.points[2])
+			brush.faces.append(face)
 		solid_brushes.append(brush)
 	for brush in solid_brushes:
 		# find vertices
-		for x in brush.planes.size() - 2: for y in brush.planes.size() - 1: for z in brush.planes.size():
+		for x in brush.faces.size() - 2: for y in brush.faces.size() - 1: for z in brush.faces.size():
 			if x != y && y != z && x != z:
 				# Get Intersection
 				var n: PackedVector3Array
 				var d: PackedFloat64Array
 				n.resize(3)
 				d.resize(3)
-				n[0] = brush.planes[x].plane.normal
-				n[1] = brush.planes[x].plane.normal
-				n[2] = brush.planes[x].plane.normal
-				d[0] = brush.planes[x].plane.d
-				d[1] = brush.planes[x].plane.d
-				d[2] = brush.planes[x].plane.d
+				n[0] = brush.faces[x].plane.normal
+				n[1] = brush.faces[x].plane.normal
+				n[2] = brush.faces[x].plane.normal
+				d[0] = brush.faces[x].plane.d
+				d[1] = brush.faces[x].plane.d
+				d[2] = brush.faces[x].plane.d
 				var denom := n[0].dot(n[1].cross(n[2]))
 				if denom == 0: continue
 				var vertex: Vector3 = (
@@ -367,15 +367,15 @@ func _generate_vertices(entity_index: int) -> void:
 					)/denom
 				# Test if outside brush
 				var legal := true
-				for w in brush.planes.size():
-					if brush.planes[w].plane.normal.dot(vertex) + brush.planes[w].plane.d > 0:
+				for w in brush.faces.size():
+					if brush.faces[w].plane.normal.dot(vertex) + brush.faces[w].plane.d > 0:
 						legal = false
 						break
 				if legal:
 					# Assign vertex to each plane
-					brush.planes[x].vertices.append(vertex)
-					brush.planes[y].vertices.append(vertex)
-					brush.planes[z].vertices.append(vertex)
+					brush.faces[x].vertices.append(vertex)
+					brush.faces[y].vertices.append(vertex)
+					brush.faces[z].vertices.append(vertex)
 	node.set_meta(&"solid_brushes", solid_brushes)
 
 func _apply_origins(entity_index: int) -> void:
