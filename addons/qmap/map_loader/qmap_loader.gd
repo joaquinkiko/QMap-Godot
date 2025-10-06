@@ -409,8 +409,19 @@ func _generate_vertices(entity_index: int) -> void:
 		var all_vertices: PackedVector3Array
 		for face in brush.faces: all_vertices.append_array(face.vertices)
 		if all_vertices.size() > 0:
-			all_vertices.sort()
-			brush.aabb = AABB(all_vertices[0], all_vertices[all_vertices.size() - 1])
+			var min_vertex: Vector3
+			var max_vertex: Vector3
+			var min_length: float = all_vertices[0].length_squared()
+			var max_length: float = min_length
+			for vertex in all_vertices:
+				var length := vertex.length_squared()
+				if length < min_length: 
+					min_length = length
+					min_vertex = vertex
+				if length > max_length: 
+					max_length = length
+					max_vertex = vertex
+			brush.aabb = AABB(min_vertex, max_vertex)
 		else: brush.aabb = AABB(Vector3.ZERO,Vector3.ZERO)
 	node.set_meta(&"solid_brushes", solid_brushes)
 
@@ -443,10 +454,21 @@ func _apply_origins(entity_index: int) -> void:
 			for brush in brushes: for face in brush.faces:
 				all_vertices.append_array(face.vertices)
 			if all_vertices.size() > 0:
-				all_vertices.sort()
-				origin = AABB(all_vertices[0], all_vertices[all_vertices.size() - 1]).get_center()
+				var min_vertex: Vector3
+				var max_vertex: Vector3
+				var min_length: float = all_vertices[0].length_squared()
+				var max_length: float = min_length
+				for vertex in all_vertices:
+					var length := vertex.length_squared()
+					if length < min_length: 
+						min_length = length
+						min_vertex = vertex
+					if length > max_length: 
+						max_length = length
+						max_vertex = vertex
+				origin = AABB(min_vertex, max_vertex).get_center()
 	node.set_meta(&"entity_origin", origin)
-	if brushes.size() == 0: node.position = origin
+	node.position = origin
 
 ## Sort and wind faces for generation
 func _wind_faces(entity_index: int) -> void:
@@ -487,6 +509,7 @@ func _wind_faces(entity_index: int) -> void:
 func _generate_geometry(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
 	var brushes: Array[EntityBrush] = node.get_meta(&"solid_brushes")
+	var origin: Vector3 = node.get_meta(&"entity_origin")
 	if brushes.size() == 0: return
 	for brush in brushes:
 		var mesh := ArrayMesh.new()
@@ -495,7 +518,8 @@ func _generate_geometry(entity_index: int) -> void:
 			var arrays: Array = []
 			arrays.resize(Mesh.ARRAY_MAX)
 			var vertices: PackedVector3Array
-			for index in face.triangle_indices: vertices.append(face.vertices[index])
+			for index in face.triangle_indices: 
+				vertices.append(face.vertices[index] - origin)
 			arrays[Mesh.ARRAY_VERTEX] = vertices
 			var normals: PackedVector3Array
 			normals.resize(vertices.size())
