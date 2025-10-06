@@ -504,6 +504,9 @@ func _clean_up_meta(entity_index: int) -> void:
 	_entities[entity_index].remove_meta(&"entity_classname")
 	_entities[entity_index].remove_meta(&"entity_brushes")
 	_entities[entity_index].remove_meta(&"solid_brushes")
+	map = null
+	wads.clear()
+	fgd = null
 
 ## Adds nodes into [SceneTree]. MUST call from main thread
 func _add_to_scene_tree(entity_index: int) -> void:
