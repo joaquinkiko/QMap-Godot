@@ -403,14 +403,15 @@ func _generate_vertices(entity_index: int) -> void:
 			face.vertices = sorted_vertices
 	node.set_meta(&"solid_brushes", solid_brushes)
 
+## Get entity origin
 func _apply_origins(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
-	var brushes: Array[Array] = node.get_meta(&"entity_brushes")
-	if brushes.size() == 0: return
+	var brushes: Array[EntityBrush] = node.get_meta(&"solid_brushes")
 	var properties: Dictionary[StringName, Variant] = node.get_meta(&"entity_properties")
 	if brushes.size() == 0: return
 	var origin := Vector3.ZERO
-	if properties.has("origin"): origin = properties["origin"]
+	if properties.has("origin"): origin = properties["origin"] * _SCALE_FACTOR
+	node.set_meta(&"entity_origin", origin)
 
 ## Sort and wind faces for generation
 func _wind_faces(entity_index: int) -> void:
@@ -449,6 +450,7 @@ func _wind_faces(entity_index: int) -> void:
 func _generate_geometry(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
 	var brushes: Array[EntityBrush] = node.get_meta(&"solid_brushes")
+	var origin: Vector3 = node.get_meta(&"entity_origin")
 	if brushes.size() == 0: return
 	for brush in brushes:
 		var mesh := ArrayMesh.new()
@@ -497,6 +499,7 @@ func _clean_up_meta(entity_index: int) -> void:
 	_entities[entity_index].remove_meta(&"entity_classname")
 	_entities[entity_index].remove_meta(&"entity_brushes")
 	_entities[entity_index].remove_meta(&"solid_brushes")
+	_entities[entity_index].remove_meta(&"entity_origin")
 
 ## Adds nodes into [SceneTree]. MUST call from main thread
 func _add_to_scene_tree(entity_index: int) -> void:
