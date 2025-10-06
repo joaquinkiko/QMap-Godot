@@ -417,6 +417,7 @@ func _wind_faces(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
 	var brushes: Array[EntityBrush] = node.get_meta(&"solid_brushes")
 	for brush in brushes: for face in brush.faces:
+		if face.vertices.size() < 3: continue
 		var center: Vector3
 		for vertex in face.vertices: center += vertex
 		center /= face.vertices.size()
@@ -433,18 +434,19 @@ func _wind_faces(entity_index: int) -> void:
 				return angle_a < angle_b
 		)
 		var _vertices: Array[Vector3]
-		_vertices.append_array(face.vertices)
 		_vertices.assign(face.vertices)
 		_vertices.sort_custom(cmp_winding_angle)
 		face.vertices = _vertices
 		var triangle_count: int = _vertices.size() - 2
-		face.triangle_indices.resize(triangle_count * 3)
+		var triangle_indices: PackedInt32Array
+		triangle_indices.resize(triangle_count * 3)
 		var index := 0
 		for i in triangle_count:
-			face.triangle_indices[index] = 0
-			face.triangle_indices[index + 1] = i + 1
-			face.triangle_indices[index + 2] = i + 2
+			triangle_indices[index] = 0
+			triangle_indices[index + 1] = i + 1
+			triangle_indices[index + 2] = i + 2
 			index += 3
+		face.triangle_indices = triangle_indices
 
 func _generate_geometry(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
@@ -453,12 +455,17 @@ func _generate_geometry(entity_index: int) -> void:
 	for brush in brushes:
 		var mesh := ArrayMesh.new()
 		for face in brush.faces:
-			if face.vertices.size() < 2: continue
+			if face.vertices.size() < 3: continue
 			var arrays: Array = []
 			arrays.resize(Mesh.ARRAY_MAX)
-			arrays[Mesh.ARRAY_VERTEX] = face.vertices
-			if face.vertices.size() % 2 != 0: arrays[Mesh.ARRAY_VERTEX].remove_at(arrays[Mesh.ARRAY_VERTEX].size() - 1)
-			mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, arrays)
+			var vertices: PackedVector3Array
+			for index in face.triangle_indices: vertices.append(face.vertices[index])
+			arrays[Mesh.ARRAY_VERTEX] = vertices
+			var normals: PackedVector3Array
+			normals.resize(vertices.size())
+			normals.fill(face.plane.normal)
+			arrays[Mesh.ARRAY_NORMAL] = normals
+			mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		var instance := MeshInstance3D.new()
 		instance.mesh = mesh
 		node.add_child(instance)
