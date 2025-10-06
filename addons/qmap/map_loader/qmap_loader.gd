@@ -319,6 +319,7 @@ func _generate_materials(texture_index: int) -> void:
 	for wad in wads: if wad.textures.has(StringName(texture_name)):
 		_materials[texture_name] = _DEFAULT_MATERIAL.duplicate()
 		_materials[texture_name].set("albedo_texture", wad.textures[StringName(texture_name)])
+		_materials[texture_name].set_meta(&"size", wad.textures[StringName(texture_name)].get_size())
 		return
 	# Add in loading Textures and Materials without Wads
 	
@@ -550,6 +551,38 @@ func _generate_geometry(entity_index: int) -> void:
 			normals.resize(vertices.size())
 			normals.fill(_convert_coordinates(face.plane.normal))
 			arrays[Mesh.ARRAY_NORMAL] = normals
+			var uvs: PackedVector2Array
+			uvs.resize(vertices.size())
+			for n in vertices.size():
+				var uv := Vector2.ONE * DEFAULT_SCALE
+				if _materials[StringName(face.texturename.to_lower())].has_meta(&"size"):
+					var size: Vector2 = _materials[StringName(face.texturename.to_lower())].get_meta(&"size")
+					_materials[StringName(face.texturename.to_lower())].remove_meta(&"size")
+					if face.uv_axes.size() >= 2:
+						# Valve 220
+						uv = Vector2(face.uv_axes[0].dot(vertices[n]), face.uv_axes[1].dot(vertices[n]))
+						uv += (face.uv.origin * face.uv.get_scale())
+						uv.x /= face.uv.x.x
+						uv.y /= face.uv.y.y
+						uv.x /= size.x
+						uv.y /= size.y
+					else:
+						# Standard
+						var nx := absf(face.plane.normal.dot(Vector3.RIGHT))
+						var ny := absf(face.plane.normal.dot(Vector3.UP))
+						var nz := absf(face.plane.normal.dot(Vector3.FORWARD))
+						if ny >= nx and ny >= nz:
+							uv = Vector2(vertices[n].x, -vertices[n].z)
+						elif nx >= ny and nx >= nz:
+							uv = Vector2(vertices[n].y, -vertices[n].z)
+						else:
+							uv = Vector2(vertices[n].x, vertices[n].y)
+						uv = uv.rotated(face.uv.get_rotation())
+						uv /= face.uv.get_scale()
+						uv += face.uv.origin
+						uv /= size
+					uvs[n] = uv
+			arrays[Mesh.ARRAY_TEX_UV] = uvs
 			mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 			var surface_index: int = mesh.get_surface_count() - 1
 			mesh.surface_set_name(surface_index, face.texturename.to_lower())
