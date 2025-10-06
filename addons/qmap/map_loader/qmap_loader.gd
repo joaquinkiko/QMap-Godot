@@ -231,7 +231,7 @@ func _generate_entity(entity_index: int) -> void:
 		if !entity.properties.has(key):
 			entity.properties[key] = fgd_class.properties[key].default_value
 	var parsed_properties: Dictionary[StringName, Variant]
-	for key in fgd_class.properties.keys(): 
+	for key in entity.properties.keys(): 
 		var raw_value := entity.properties[key]
 		var value: Variant
 		match fgd_class.properties[key].type:
@@ -284,7 +284,8 @@ func _generate_entity(entity_index: int) -> void:
 					value = Vector3.ONE * raw_value.to_float()
 				else: value = raw_value.to_float()
 			_: value = raw_value
-		node.set(key, value)
+		parsed_properties[key] = value
+		if fgd_class.properties.has(key): node.set(key, value)
 	node.set_meta(&"entity_properties", parsed_properties)
 	node.set_meta(&"entity_classname", entity.classname)
 	node.set_meta(&"entity_brushes", entity.brushes)
