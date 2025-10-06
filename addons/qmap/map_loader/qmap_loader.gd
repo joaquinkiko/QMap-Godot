@@ -376,6 +376,30 @@ func _generate_vertices(entity_index: int) -> void:
 				brush.faces[x].vertices.append(vertex)
 				brush.faces[y].vertices.append(vertex)
 				brush.faces[z].vertices.append(vertex)
+		# Sort vertices
+		for face in brush.faces:
+			if face.vertices.size() < 2: continue
+			var sorted_vertices: PackedVector3Array
+			var center: Vector3
+			for vertex in face.vertices: center += vertex
+			center /= face.vertices.size()
+			for n in face.vertices.size() - 2:
+				var a := (face.vertices[n] - center).normalized()
+				var p := Plane(face.vertices[n], center, center + face.plane.normal)
+				var smallest_angle: float = -1
+				var smallest: int = -1
+				for m in range(n+1, face.vertices.size()):
+					if face.vertices[m] != Vector3.UP:
+						var b := (face.vertices[m] - center).normalized()
+						var angle := a.dot(b)
+						if angle > smallest_angle:
+							smallest_angle = angle
+							smallest = m
+				sorted_vertices.append(face.vertices[smallest])
+				sorted_vertices.append(face.vertices[n+1])
+			sorted_vertices.append(face.vertices[face.vertices.size() - 2])
+			sorted_vertices.append(face.vertices[face.vertices.size() - 1])
+			face.vertices = sorted_vertices
 	node.set_meta(&"solid_brushes", solid_brushes)
 
 func _apply_origins(entity_index: int) -> void:
