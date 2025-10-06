@@ -10,6 +10,7 @@ class BrushFace extends RefCounted:
 	var rot: float
 	var texturename: StringName
 	var vertices: PackedVector3Array
+	var triangle_indices: PackedInt32Array
 
 const _VERTEX_EPSILON := 0.008
 const _VERTEX_EPSILON2 := _VERTEX_EPSILON * _VERTEX_EPSILON
@@ -411,11 +412,39 @@ func _apply_origins(entity_index: int) -> void:
 	var origin := Vector3.ZERO
 	if properties.has("origin"): origin = properties["origin"]
 
+## Sort and wind faces for generation
 func _wind_faces(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
-	var brushes: Array[Array] = node.get_meta(&"entity_brushes")
-	for i in brushes.size(): for n in brushes[i].size():
-		pass
+	var brushes: Array[EntityBrush] = node.get_meta(&"solid_brushes")
+	for brush in brushes: for face in brush.faces:
+		var center: Vector3
+		for vertex in face.vertices: center += vertex
+		center /= face.vertices.size()
+		var u_axis: Vector3
+		if face.vertices.size() >= 2:
+			u_axis = (face.vertices[1] - face.vertices[0]).normalized()
+		var v_axis: Vector3 = u_axis.cross(face.plane.normal).normalized()
+		var cmp_winding_angle: Callable = (
+			func(a: Vector3, b: Vector3) -> bool:
+				var dir_a: Vector3 = a - center
+				var dir_b: Vector3 = b - center
+				var angle_a: float = atan2(dir_a.dot(v_axis), dir_a.dot(u_axis))
+				var angle_b: float = atan2(dir_b.dot(v_axis), dir_b.dot(u_axis))
+				return angle_a < angle_b
+		)
+		var _vertices: Array[Vector3]
+		_vertices.append_array(face.vertices)
+		_vertices.assign(face.vertices)
+		_vertices.sort_custom(cmp_winding_angle)
+		face.vertices = _vertices
+		var triangle_count: int = _vertices.size() - 2
+		face.triangle_indices.resize(triangle_count * 3)
+		var index := 0
+		for i in triangle_count:
+			face.triangle_indices[index] = 0
+			face.triangle_indices[index + 1] = i + 1
+			face.triangle_indices[index + 2] = i + 2
+			index += 3
 
 func _generate_geometry(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
