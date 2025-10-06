@@ -331,13 +331,13 @@ func _generate_vertices(entity_index: int) -> void:
 			var face := BrushFace.new()
 			face.texturename = brushes[i][j][&"texture"]
 			face.uv_scale = Vector2(
-				brushes[i][j][&"u_scale"],
-				brushes[i][j][&"v_scale"]
+				brushes[i][j][&"u_scale"] * _SCALE_FACTOR,
+				brushes[i][j][&"v_scale"] * _SCALE_FACTOR
 				)
 			face.points = [
-				brushes[i][j][&"p1"],
-				brushes[i][j][&"p2"],
-				brushes[i][j][&"p3"]
+				brushes[i][j][&"p1"] * _SCALE_FACTOR,
+				brushes[i][j][&"p2"] * _SCALE_FACTOR,
+				brushes[i][j][&"p3"] * _SCALE_FACTOR
 				]
 			face.rot = deg_to_rad(brushes[i][j][&"rotation"])
 			face.plane = Plane(face.points[0], face.points[1], face.points[2])
@@ -395,8 +395,20 @@ func _wind_faces(entity_index: int) -> void:
 
 func _generate_geometry(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
-	var brushes: Array[Array] = node.get_meta(&"entity_brushes")
+	var brushes: Array[EntityBrush] = node.get_meta(&"solid_brushes")
 	if brushes.size() == 0: return
+	for brush in brushes:
+		var mesh := ArrayMesh.new()
+		for face in brush.faces:
+			if face.vertices.size() < 2: continue
+			var arrays: Array = []
+			arrays.resize(Mesh.ARRAY_MAX)
+			arrays[Mesh.ARRAY_VERTEX] = face.vertices
+			if face.vertices.size() % 2 != 0: arrays[Mesh.ARRAY_VERTEX].remove_at(arrays[Mesh.ARRAY_VERTEX].size() - 1)
+			mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, arrays)
+		var instance := MeshInstance3D.new()
+		instance.mesh = mesh
+		node.add_child(instance)
 
 func _generate_occlusion(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
