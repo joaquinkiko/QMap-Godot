@@ -12,6 +12,8 @@ class BrushFace extends RefCounted:
 	var texturename: StringName
 	var vertices: PackedVector3Array
 	var triangle_indices: PackedInt32Array
+	var uv: Transform2D
+	var uv_axes: PackedVector3Array
 
 const _VERTEX_EPSILON := 0.008
 const _VERTEX_EPSILON2 := _VERTEX_EPSILON * _VERTEX_EPSILON
@@ -346,6 +348,29 @@ func _generate_vertices(entity_index: int) -> void:
 				]
 			face.rot = deg_to_rad(brushes[i][j][&"rotation"])
 			face.plane = Plane(face.points[0], face.points[1], face.points[2])
+			face.uv = Transform2D.IDENTITY
+			if brushes[i][j][&"u_offset"] is Vector4 || brushes[i][j][&"u_offset"] is Vector4i:
+				# Valve 220 UV
+				face.uv_axes = [
+					Vector3(
+						brushes[i][j][&"u_offset"].x,
+						brushes[i][j][&"u_offset"].y,
+						brushes[i][j][&"u_offset"].z
+						),
+					Vector3(
+						brushes[i][j][&"v_offset"].x,
+						brushes[i][j][&"v_offset"].y,
+						brushes[i][j][&"v_offset"].z
+						)
+				]
+				face.uv.origin = Vector2(brushes[i][j][&"u_offset"].w, brushes[i][j][&"v_offset"].w)
+				face.uv.x = Vector2(face.uv_scale.x, 0) * _SCALE_FACTOR
+				face.uv.y = Vector2(0, face.uv_scale.y) * _SCALE_FACTOR
+			else:
+				# Standard UV
+				face.uv.origin = Vector2(brushes[i][j][&"u_offset"], brushes[i][j][&"v_offset"])
+				face.uv.x = Vector2(cos(face.rot), -sin(face.rot)) * face.uv_scale.x * _SCALE_FACTOR
+				face.uv.y = Vector2(sin(face.rot), cos(face.rot)) * face.uv_scale.y * _SCALE_FACTOR
 			brush.faces.append(face)
 		solid_brushes.append(brush)
 	for brush in solid_brushes:
