@@ -346,36 +346,36 @@ func _generate_vertices(entity_index: int) -> void:
 	for brush in solid_brushes:
 		# find vertices
 		for x in brush.faces.size() - 2: for y in brush.faces.size() - 1: for z in brush.faces.size():
-			if x != y && y != z && x != z:
-				# Get Intersection
-				var n: PackedVector3Array
-				var d: PackedFloat64Array
-				n.resize(3)
-				d.resize(3)
-				n[0] = brush.faces[x].plane.normal
-				n[1] = brush.faces[x].plane.normal
-				n[2] = brush.faces[x].plane.normal
-				d[0] = brush.faces[x].plane.d
-				d[1] = brush.faces[x].plane.d
-				d[2] = brush.faces[x].plane.d
-				var denom := n[0].dot(n[1].cross(n[2]))
-				if denom == 0: continue
-				var vertex: Vector3 = (
-					-d[0]*n[1].cross(n[2])
-					-d[1]*n[2].cross(n[0])
-					-d[2]*n[0].cross(n[1])
-					)/denom
-				# Test if outside brush
-				var legal := true
-				for w in brush.faces.size():
-					if brush.faces[w].plane.normal.dot(vertex) + brush.faces[w].plane.d > 0:
-						legal = false
-						break
-				if legal:
-					# Assign vertex to each plane
-					brush.faces[x].vertices.append(vertex)
-					brush.faces[y].vertices.append(vertex)
-					brush.faces[z].vertices.append(vertex)
+			if x == y || y == z || x == z: continue
+			# Get Intersection
+			var n: PackedVector3Array
+			var d: PackedFloat64Array
+			n.resize(3)
+			d.resize(3)
+			n[0] = brush.faces[x].plane.normal
+			n[1] = brush.faces[y].plane.normal
+			n[2] = brush.faces[z].plane.normal
+			d[0] = brush.faces[x].plane.d
+			d[1] = brush.faces[y].plane.d
+			d[2] = brush.faces[z].plane.d
+			var denom := n[0].dot(n[1].cross(n[2]))
+			if denom == 0: continue
+			var vertex := (
+				-d[0]*n[1].cross(n[2])
+				-d[1]*n[2].cross(n[0])
+				-d[2]*n[0].cross(n[1])
+				)/denom
+			# Test if outside brush
+			var legal := true
+			for w in brush.faces.size():
+				if brush.faces[w].plane.normal.dot(vertex) + brush.faces[w].plane.d > 0:
+					legal = false
+					break
+			if legal:
+				# Assign vertex to each plane
+				brush.faces[x].vertices.append(vertex)
+				brush.faces[y].vertices.append(vertex)
+				brush.faces[z].vertices.append(vertex)
 	node.set_meta(&"solid_brushes", solid_brushes)
 
 func _apply_origins(entity_index: int) -> void:
