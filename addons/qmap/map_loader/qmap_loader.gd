@@ -544,11 +544,11 @@ func _generate_geometry(entity_index: int) -> void:
 			arrays.resize(Mesh.ARRAY_MAX)
 			var vertices: PackedVector3Array
 			for index in face.triangle_indices: 
-				vertices.append(face.vertices[index] - origin)
+				vertices.append(_convert_coordinates(face.vertices[index] - origin))
 			arrays[Mesh.ARRAY_VERTEX] = vertices
 			var normals: PackedVector3Array
 			normals.resize(vertices.size())
-			normals.fill(face.plane.normal)
+			normals.fill(_convert_coordinates(face.plane.normal))
 			arrays[Mesh.ARRAY_NORMAL] = normals
 			mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 			var surface_index: int = mesh.get_surface_count() - 1
@@ -601,3 +601,6 @@ func _clean_up_meta(entity_index: int) -> void:
 func _add_to_scene_tree(entity_index: int) -> void:
 	var node: Node = _entities[entity_index]
 	add_child(node, true)
+
+func _convert_coordinates(vector: Vector3) -> Vector3:
+	return Vector3(vector.y, vector.z, vector.x)
