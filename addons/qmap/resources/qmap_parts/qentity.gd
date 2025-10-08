@@ -15,13 +15,6 @@ enum GroupingType{
 
 class Brush extends RefCounted:
 	var faces: Array[Face]
-	## Returns true if all faces use origin texture
-	var is_origin: bool:
-		get:
-			for face in faces:
-				if face.texturename != QMap.TEXTURE_ORIGIN:
-					return false
-			return true
 	## Array of planes from [member faces]
 	var planes: Array[Plane]:
 		get:
@@ -140,12 +133,9 @@ func is_solid(fgd: FGD) -> bool:
 
 ## Returns dictionary of properties (both defined, and default values)
 ## parsed into their correct [Variant] types as defined by [param fgd]
-func get_parsed_properties(fgd: FGD) -> Dictionary[StringName, Variant]:
+func get_parsed_properties(fgd: FGD, settings: QMapSettings) -> Dictionary[StringName, Variant]:
 	var fgd_class: FGDClass = fgd.classes.get(classname)
 	if fgd_class == null: return properties
-	var texture_path: String = QMapLoader.DEFAULT_PATH_TEXTURES
-	var model_path: String = QMapLoader.DEFAULT_PATH_MODELS
-	var audio_path: String = QMapLoader.DEFAULT_PATH_AUDIO
 	var parsed_properties: Dictionary[StringName, Variant]
 	var to_parse: Dictionary[StringName, String]
 	for base in fgd_class.base_classes:
@@ -204,21 +194,29 @@ func get_parsed_properties(fgd: FGD) -> Dictionary[StringName, Variant]:
 				if nums.size() >= 3: value = Color(nums[0], nums[1], nums[2])
 				else: value = Color(0,0,0)
 			FGDEntityProperty.PropertyType.DECAL:
-				if ResourceLoader.exists("%s/%s"%[texture_path, raw_value]):
-					value = ResourceLoader.load("%s/%s"%[texture_path, raw_value])
-				else: value = null
+				value = null
+				for texture_path in settings.paths_textures:
+					if ResourceLoader.exists("%s/%s"%[texture_path, raw_value]):
+						value = ResourceLoader.load("%s/%s"%[texture_path, raw_value])
+						break
 			FGDEntityProperty.PropertyType.STUDIO:
-				if ResourceLoader.exists("%s/%s"%[model_path, raw_value]):
-					value = ResourceLoader.load("%s/%s"%[model_path, raw_value])
-				else: value = null
+				value = null
+				for model_path in settings.paths_textures:
+					if ResourceLoader.exists("%s/%s"%[model_path, raw_value]):
+						value = ResourceLoader.load("%s/%s"%[model_path, raw_value])
+						break
 			FGDEntityProperty.PropertyType.SPRITE:
-				if ResourceLoader.exists("%s/%s"%[texture_path, raw_value]):
-					value = ResourceLoader.load("%s/%s"%[texture_path, raw_value])
-				else: value = null
+				value = null
+				for texture_path in settings.paths_textures:
+					if ResourceLoader.exists("%s/%s"%[texture_path, raw_value]):
+						value = ResourceLoader.load("%s/%s"%[texture_path, raw_value])
+						break
 			FGDEntityProperty.PropertyType.SOUND:
-				if ResourceLoader.exists("%s/%s"%[audio_path, raw_value]):
-					value = ResourceLoader.load("%s/%s"%[audio_path, raw_value])
-				else: value = null
+				value = null
+				for audio_path in settings.paths_textures:
+					if ResourceLoader.exists("%s/%s"%[audio_path, raw_value]):
+						value = ResourceLoader.load("%s/%s"%[audio_path, raw_value])
+						break
 			FGDEntityProperty.PropertyType.SCALE:
 				value = raw_value.to_float()
 			FGDEntityProperty.PropertyType.TARGET_SOURCE:

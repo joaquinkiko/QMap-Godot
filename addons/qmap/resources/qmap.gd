@@ -6,10 +6,6 @@
 ## [url]https://developer.valvesoftware.com/wiki/MAP_(file_format)[/url]
 class_name QMap extends Resource
 
-const TEXTURE_ORIGIN := &"origin"
-const TEXTURE_SKIP := &"skip"
-const TEXTURE_CLIP := &"clip"
-
 ## Game name (for use with Trenchbroom)
 @export var game_name: String
 ## Format name (for use with Trenchbroom)
@@ -27,3 +23,22 @@ var message: String:
 			if !entity.classname == "worldspawn": continue
 			return entity.properties.get(&"message", "")
 		return ""
+## Array of wad paths from entities (typically "wad" in "worldspawn")
+var wad_paths: PackedStringArray:
+	get:
+		var output: PackedStringArray
+		for entity in entities: output.append_array(entity.wad_paths)
+		return output
+## Array of mods defined by "_tb_mod" from "worldspawn" entity
+var mods: PackedStringArray:
+	get:
+		for entity in entities: 
+			if entity.mods.size() > 0: return entity.mods
+		return []
+## Array of unique texturenames used throughout entity brushes
+var texturenames: PackedStringArray:
+	get:
+		var output: PackedStringArray
+		for entity in entities: for texturename in entity.texturenames:
+			if !output.has(texturename): output.append(texturename)
+		return output
