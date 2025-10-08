@@ -45,7 +45,7 @@ func _save(resource: Resource, path: String, flags: int) -> Error:
 					else:
 						file.store_string("%s "%face.points[n].x)
 					if face.points[n].y == floor(face.points[n].y):
-						file.store_string("%s "%int(face.points[0].y))
+						file.store_string("%s "%int(face.points[n].y))
 					else:
 						file.store_string("%s "%face.points[n].y)
 					if face.points[n].z == floor(face.points[n].z):
@@ -102,7 +102,7 @@ func _save(resource: Resource, path: String, flags: int) -> Error:
 					file.store_string("] ")
 				else:
 					if face.v_offset.w == floor(face.v_offset.w):
-						file.store_string("%s "%face.v_offset.w)
+						file.store_string("%s "%int(face.v_offset.w))
 					else:
 						file.store_string("%s "%face.v_offset.w)
 				if face.rotation == floor(face.rotation):
@@ -113,8 +113,8 @@ func _save(resource: Resource, path: String, flags: int) -> Error:
 					file.store_string("%s "%int(face.uv_scale.x))
 				else:
 					file.store_string("%s "%face.uv_scale.x)
-				if face.uv_scale.y == face.uv_scale.y:
-					file.store_string("%s"%face.uv_scale.y)
+				if face.uv_scale.y == floor(face.uv_scale.y):
+					file.store_string("%s"%int(face.uv_scale.y))
 				else:
 					file.store_string("%s"%face.uv_scale.y)
 				if face.has_surface_flags:

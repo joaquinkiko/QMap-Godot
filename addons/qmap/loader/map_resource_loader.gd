@@ -22,7 +22,8 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 	var current_brush: QEntity.Brush
 	var face_regex := RegEx.new()
 	face_regex.compile(r'(\([^\)]*\)|\[[^\]]*\]|"[^"]*"|\S+)')
-	for line in file.get_line():
+	while !file.eof_reached():
+		var line := file.get_line()
 		line = line.strip_edges()
 		# Parse header
 		if is_in_header:
@@ -42,7 +43,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			else:
 				is_in_header = false
 		# Clear comments / check if empty
-		line.split("//", false)[0].strip_edges()
+		line.split("//", true)[0].strip_edges()
 		if line.is_empty(): continue
 		# Check opening / closing bracket
 		match line:
@@ -74,21 +75,19 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			else: continue
 			face.texturename = matches[3].get_string().trim_prefix('"').trim_suffix('"')
 			for n in 3:
-				var vector_string := matches[n].get_string()
-				vector_string.trim_prefix("(").trim_suffix(")").strip_edges()
+				var vector_string := matches[n].get_string().trim_prefix("(").trim_suffix(")").strip_edges()
 				var vector_contents := vector_string.split(" ", false)
 				face.points.append(Vector3(
 					vector_contents[0].to_float(),
 					vector_contents[1].to_float(),
 					vector_contents[2].to_float())
 					)
-			face.plane = Plane(face.points[0], face.points[1], face.points[3])
+			face.plane = Plane(face.points[0], face.points[1], face.points[2])
 			if matches[4].get_string().begins_with("["):
 				face.format = QEntity.FaceFormat.VALVE_220
 			else: face.format = QEntity.FaceFormat.STANDARD
 			if face.format == QEntity.FaceFormat.VALVE_220:
-				var vector_string := matches[4].get_string()
-				vector_string.trim_prefix("[").trim_suffix("]").strip_edges()
+				var vector_string := matches[4].get_string().trim_prefix("[").trim_suffix("]").strip_edges()
 				var vector_contents := vector_string.split(" ", false)
 				face.u_offset = Vector4(
 					vector_contents[0].to_float(),
@@ -96,8 +95,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 					vector_contents[2].to_float(),
 					vector_contents[3].to_float()
 					)
-				vector_string = matches[5].get_string()
-				vector_string.trim_prefix("[").trim_suffix("]").strip_edges()
+				vector_string = matches[5].get_string().trim_prefix("[").trim_suffix("]").strip_edges()
 				vector_contents = vector_string.split(" ", false)
 				face.v_offset = Vector4(
 					vector_contents[0].to_float(),
