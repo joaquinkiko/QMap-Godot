@@ -9,11 +9,11 @@ class_name QMapSettings extends Resource
 @export_range(1, 256, 1) var uv_unwrap_texel_ratio: int = 16
 @export_group("Special Textures")
 ## Clip texturename
-@export var texture_clip: String = "clip"
+@export var texture_clip: StringName = "clip"
 ## Skip texturename
-@export var texture_skip: String = "skip"
+@export var texture_skip: StringName = "skip"
 ## Origin texturename
-@export var texture_origin: String = "origin"
+@export var texture_origin: StringName = "origin"
 ## Empty texturename
 @export var texture_empty: StringName = "__TB_empty"
 @export_group("Texture Settings")
