@@ -36,7 +36,7 @@ enum PropertyType {
 	VECTOR
 }
 
-@export var type: PropertyType
+@export var type: PropertyType = PropertyType.STRING
 ## Default value (ignored if not valid based on [member type])
 @export var default_value: String
 ## Editor display name

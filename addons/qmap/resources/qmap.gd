@@ -6,6 +6,14 @@
 ## [url]https://developer.valvesoftware.com/wiki/MAP_(file_format)[/url]
 class_name QMap extends Resource
 
+const TEXTURE_ORIGIN := &"origin"
+const TEXTURE_SKIP := &"skip"
+const TEXTURE_CLIP := &"clip"
+
+## Game name (for use with Trenchbroom)
+@export var game_name: String
+## Format name (for use with Trenchbroom)
+@export var format_name: String
 ## Header comments
 @export_multiline var header: String
 ## Entities to generate
