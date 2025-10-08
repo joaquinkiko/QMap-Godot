@@ -51,6 +51,10 @@ func _thread_group_task(task: Callable, elements: int, task_debug: String) -> vo
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 
+## Convert YZX coordinates to XYZ coordinates
+func _convert_coordinates(vector: Vector3) -> Vector3:
+	return Vector3(vector.y, vector.z, vector.x)
+
 func load_map() -> Error:
 	if map == null:
 		printerr("Missing map to generate!")
