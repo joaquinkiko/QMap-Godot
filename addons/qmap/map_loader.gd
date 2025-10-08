@@ -123,6 +123,7 @@ func _create_entity_maps() -> void:
 					face_data.texture = face.texturename
 					brush_data.faces.append(face_data)
 				data.brushes.append(brush_data)
+			_solid_data[entity] = data
 		else: _solid_data[entity] = null
 
 ## Fill [member _wads]
