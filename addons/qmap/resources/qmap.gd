@@ -20,3 +20,10 @@ const TEXTURE_CLIP := &"clip"
 @export var entities: Array[QEntity]
 ## Add headers like "// entity 0" before each entity
 @export var use_entity_headers: bool
+## Property value of "message" from "worldspawn" entity
+var message: String:
+	get:
+		for entity in entities:
+			if !entity.classname == "worldspawn": continue
+			return entity.properties.get(&"message", "")
+		return ""
