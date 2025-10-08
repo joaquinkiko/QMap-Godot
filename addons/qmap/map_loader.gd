@@ -32,6 +32,7 @@ class SolidData extends RefCounted:
 ## When true will print debug info while map loads
 @export var verbose: bool = true
 
+var _current_wad_paths: PackedStringArray
 var _wads: Array[WAD]
 var _materials: Dictionary[StringName, Material]
 var _entities: Dictionary[QEntity, Node]
@@ -56,8 +57,13 @@ func load_map() -> Error:
 		return ERR_FILE_NOT_FOUND
 	var start_time := Time.get_ticks_msec()
 	if verbose: print("Generating map '%s'..."%map.resource_path)
+	if verbose: print("\t-Initializing...")
 	_create_texture_map()
 	_create_entity_maps()
+	_wads = settings.extra_wads
+	for wad in settings.extra_wads: _current_wad_paths.append(wad.resource_path)
+	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - start_time))
+	_thread_group_task(_load_wads, map.wad_paths.size(), "Loading wads")
 	_thread_group_task(_generate_materials, _materials.size(), "Generating materials")
 	_thread_group_task(_generate_entities, _entities.size(), "Generating entities")
 	_thread_group_task(_generate_solid_data, _solid_data.size(), "Generating Solid Data")
@@ -70,18 +76,46 @@ func load_map() -> Error:
 	var interval_time := Time.get_ticks_msec()
 	_pass_to_scene_tree()
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
-	if verbose: print("Finished generating map in %sms"%(Time.get_ticks_msec() - start_time))
+	_current_wad_paths.clear()
 	_wads.clear()
 	_materials.clear()
 	_entities.clear()
 	_solid_data.clear()
+	if verbose: print("Finished generating map in %sms"%(Time.get_ticks_msec() - start_time))
 	return OK
 
+## Fill [member _materials]
 func _create_texture_map() -> void:
-	pass
+	var placeholder := PlaceholderMaterial.new()
+	for texturename in map.texturenames:
+		_materials[texturename] = placeholder
 
+## Fill [member _entities] and [member _solid_data]
 func _create_entity_maps() -> void:
-	pass
+	for entity in map.entities:
+		_entities[entity] = null
+		if entity.brushes.size() > 0:
+			var data := SolidData.new()
+			data.origin = entity.origin
+			for brush in entity.brushes:
+				var brush_data := SolidData.BrushData.new()
+				for face in brush.faces:
+					var face_data := SolidData.FaceData.new()
+					face_data.texture = face.texturename
+					brush_data.faces.append(face_data)
+				data.brushes.append(brush_data)
+		else: _solid_data[entity] = null
+
+## Fill [member _wads]
+func _load_wads(index: int) -> void:
+	for base_path in settings.paths_wads:
+		if _current_wad_paths.has("%s/%s"%[base_path, map.wad_paths[index]]): continue
+		if ResourceLoader.exists("%s/%s"%[base_path, map.wad_paths[index]]):
+			var wad: WAD = ResourceLoader.load("%s/%s"%[base_path, map.wad_paths[index]])
+			if wad != null:
+				_wads.append(wad)
+				return
+	printerr("\t\t-Missing WAD: %s"%map.wad_paths[index])
 
 func _generate_materials(index: int) -> void:
 	pass
