@@ -65,7 +65,9 @@ func load_map() -> Error:
 	_create_texture_map()
 	_create_entity_maps()
 	_wads = settings.extra_wads
-	for wad in settings.extra_wads: _current_wad_paths.append(wad.resource_path)
+	for wad in settings.extra_wads:
+		if verbose: print("\t\t-Including WAD: %s"%wad.resource_path)
+		_current_wad_paths.append(wad.resource_path)
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - start_time))
 	progress.emit(0.05)
 	_thread_group_task(_load_wads, map.wad_paths.size(), "Loading wads")
@@ -108,6 +110,7 @@ func _create_texture_map() -> void:
 
 ## Fill [member _entities] and [member _solid_data]
 func _create_entity_maps() -> void:
+	if verbose: print("\t\t-Initializing %s entities..."%map.entities.size())
 	for entity in map.entities:
 		_entities[entity] = null
 		if entity.brushes.size() > 0:
@@ -127,6 +130,7 @@ func _load_wads(index: int) -> void:
 	for base_path in settings.paths_wads:
 		if _current_wad_paths.has("%s/%s"%[base_path, map.wad_paths[index]]): continue
 		if ResourceLoader.exists("%s/%s"%[base_path, map.wad_paths[index]]):
+			if verbose: print("\t\t-Loading WAD: %s"%map.wad_paths[index])
 			var wad: WAD = ResourceLoader.load("%s/%s"%[base_path, map.wad_paths[index]])
 			if wad != null:
 				_wads.append(wad)
