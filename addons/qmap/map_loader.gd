@@ -138,28 +138,41 @@ func _load_wads(index: int) -> void:
 	printerr("\t\t-Missing WAD: %s"%map.wad_paths[index])
 
 func _generate_materials(index: int) -> void:
-	pass
+	var texturename: StringName = _materials.keys()[index]
 
 func _generate_entities(index: int) -> void:
-	pass
+	var entity: QEntity = _entities.keys()[index]
 
 func _generate_solid_data(index: int) -> void:
-	pass
+	var entity: QEntity = _solid_data.keys()[index]
+	var data: SolidData = _solid_data[entity]
+	if data == null: return
 
 func _calculate_origins(index: int) -> void:
-	pass
+	var entity: QEntity = _solid_data.keys()[index]
+	var data: SolidData = _solid_data[entity]
+	if data == null: return
 
 func _wind_faces(index: int) -> void:
-	pass
+	var entity: QEntity = _solid_data.keys()[index]
+	var data: SolidData = _solid_data[entity]
+	if data == null: return
 
 func _index_faces(index: int) -> void:
-	pass
+	var entity: QEntity = _solid_data.keys()[index]
+	var data: SolidData = _solid_data[entity]
+	if data == null: return
 
 func _smooth_normals(index: int) -> void:
-	pass
+	var entity: QEntity = _solid_data.keys()[index]
+	var data: SolidData = _solid_data[entity]
+	if data == null: return
 
 func _generate_meshes(index: int) -> void:
-	pass
+	var entity: QEntity = _solid_data.keys()[index]
+	var data: SolidData = _solid_data[entity]
+	if data == null: return
 
 func _pass_to_scene_tree() -> void:
-	pass
+	for entity in _entities.keys():
+		var node := _entities[entity]
