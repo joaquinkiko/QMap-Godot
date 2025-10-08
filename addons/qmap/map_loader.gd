@@ -20,6 +20,9 @@ class SolidData extends RefCounted:
 	var origin: Vector3
 	var mesh: ArrayMesh
 
+## Emitted at map loading stages (value from 0.0-1.0)
+signal progress(percentage: float)
+
 ## [QMap] to load on [method load_map]
 @export var map: QMap
 ## Settings to use for generation
@@ -57,31 +60,44 @@ func load_map() -> Error:
 		return ERR_FILE_NOT_FOUND
 	var start_time := Time.get_ticks_msec()
 	if verbose: print("Generating map '%s'..."%map.resource_path)
+	progress.emit(0)
 	if verbose: print("\t-Initializing...")
 	_create_texture_map()
 	_create_entity_maps()
 	_wads = settings.extra_wads
 	for wad in settings.extra_wads: _current_wad_paths.append(wad.resource_path)
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - start_time))
+	progress.emit(0.05)
 	_thread_group_task(_load_wads, map.wad_paths.size(), "Loading wads")
+	progress.emit(0.1)
 	_thread_group_task(_generate_materials, _materials.size(), "Generating materials")
+	progress.emit(0.15)
 	_thread_group_task(_generate_entities, _entities.size(), "Generating entities")
+	progress.emit(0.2)
 	_thread_group_task(_generate_solid_data, _solid_data.size(), "Generating Solid Data")
+	progress.emit(0.4)
 	_thread_group_task(_calculate_origins, _solid_data.size(), "Calculating origins")
+	progress.emit(0.45)
 	_thread_group_task(_wind_faces, _solid_data.size(), "Winding faces")
+	progress.emit(0.5)
 	_thread_group_task(_index_faces, _solid_data.size(), "Indexing faces")
+	progress.emit(0.65)
 	_thread_group_task(_smooth_normals, _solid_data.size(), "Smoothing normals")
+	progress.emit(0.75)
 	_thread_group_task(_generate_meshes, _solid_data.size(), "Generating meshes")
+	progress.emit(0.9)
 	if verbose: print("\t-Adding to SceneTree...")
 	var interval_time := Time.get_ticks_msec()
 	_pass_to_scene_tree()
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
+	progress.emit(0.99)
 	_current_wad_paths.clear()
 	_wads.clear()
 	_materials.clear()
 	_entities.clear()
 	_solid_data.clear()
 	if verbose: print("Finished generating map in %sms"%(Time.get_ticks_msec() - start_time))
+	progress.emit(1)
 	return OK
 
 ## Fill [member _materials]
