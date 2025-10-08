@@ -14,6 +14,8 @@ class_name QMapSettings extends Resource
 @export var texture_skip: String = "skip"
 ## Origin texturename
 @export var texture_origin: String = "origin"
+## Empty texturename
+@export var texture_empty: StringName = "__TB_empty"
 @export_group("Texture Settings")
 ## Wad files to always load during map generation
 @export var extra_wads: Array[WAD]

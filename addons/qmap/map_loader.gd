@@ -138,8 +138,47 @@ func _load_wads(index: int) -> void:
 				return
 	printerr("\t\t-Missing WAD: %s"%map.wad_paths[index])
 
+## Create materials for [member _materials] and optionally cache materials
 func _generate_materials(index: int) -> void:
 	var texturename: StringName = _materials.keys()[index]
+	if texturename == settings.texture_empty: return
+	if texturename == settings.texture_clip: return
+	if texturename == settings.texture_skip: return
+	if texturename == settings.texture_origin: return
+	var texture: Texture2D
+	var material: Material
+	if settings.cache_materials:
+		for extension in settings.material_extensions:
+			if ResourceLoader.exists("%s/%s.%s"%[settings.cache_materials, texturename, extension]):
+				material = ResourceLoader.load("%s/%s.%s"%[settings.cache_materials, texturename, extension])
+				_materials[texturename] = material
+				return
+	for path in settings.paths_materials: for extension in settings.material_extensions:
+		if ResourceLoader.exists("%s/%s.%s"%[path, texturename, extension]):
+			material = ResourceLoader.load("%s/%s.%s"%[path, texturename, extension])
+	if material == null:
+		if settings.default_material != null:
+			material = settings.default_material.duplicate()
+		else: material = StandardMaterial3D.new()
+	for path in settings.paths_textures: for extension in settings.texture_extensions:
+		if ResourceLoader.exists("%s/%s.%s"%[path, texturename, extension]):
+			texture = ResourceLoader.load("%s/%s.%s"%[path, texturename, extension])
+	if texture == null: for wad in _wads:
+		if !wad.textures.has(texturename): continue
+		texture = wad.textures[texturename]
+	if texture != null:
+		material.set(settings.default_material_texture_path, texture)
+	_materials[texturename] = material
+	if settings.cache_materials:
+		var is_cached: bool
+		for extension in settings.material_extensions:
+			if ResourceLoader.exists("%s/%s.%s"%[settings.cache_materials, texturename, extension]):
+				is_cached = true
+				break
+		if !is_cached && settings.material_extensions.size() > 0:
+			if !DirAccess.dir_exists_absolute(settings.cache_path):
+				DirAccess.make_dir_absolute(settings.cache_path)
+			ResourceSaver.save(material, "%s/%s.%s"%[settings.cache_path, texturename, settings.material_extensions[0]])
 
 func _generate_entities(index: int) -> void:
 	var entity: QEntity = _entities.keys()[index]
