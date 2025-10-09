@@ -165,7 +165,7 @@ func _load_wads(index: int) -> void:
 
 ## Create materials for [member _materials] and optionally cache materials
 func _generate_materials(index: int) -> void:
-	var texturename: StringName = _materials.keys()[index]
+	var texturename: StringName = _materials.keys()[index].validate_filename().to_lower()
 	if texturename == settings.texture_empty: return
 	if texturename == settings.texture_clip: return
 	if texturename == settings.texture_skip: return
