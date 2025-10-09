@@ -7,8 +7,14 @@ class_name MapLoader extends Node3D
 class SolidData extends RefCounted:
 	class BrushData extends RefCounted:
 		var faces: Array[FaceData]
+		var planes: Array[Plane]
 		var is_origin: bool
 	class FaceData extends RefCounted:
+		var plane: Plane
+		var uv: Transform2D
+		var u_axis: Vector3
+		var v_axis: Vector3
+		var uv_format: QEntity.FaceFormat
 		var vertices: PackedVector3Array
 		var normals: PackedVector3Array
 		var tangents: PackedFloat32Array
@@ -123,10 +129,21 @@ func _create_entity_maps() -> void:
 			for brush in entity.brushes:
 				var brush_data := SolidData.BrushData.new()
 				brush_data.is_origin = true
+				brush_data.planes = brush.planes
 				for face in brush.faces:
 					var face_data := SolidData.FaceData.new()
 					face_data.texture = face.texturename
 					if face.texturename != settings.texture_origin: brush_data.is_origin = false
+					face_data.plane = face.plane
+					face_data.uv = face.uv
+					face_data.uv_format = face.format
+					if face.format == QEntity.FaceFormat.VALVE_220:
+						face_data.u_axis = Vector3(
+							face.u_offset.x, face.u_offset.y, face.u_offset.z
+						).normalized()
+						face_data.v_axis = Vector3(
+							face.v_offset.x, face.v_offset.y, face.v_offset.z
+						).normalized()
 					brush_data.faces.append(face_data)
 				data.brushes.append(brush_data)
 			_solid_data[entity] = data
@@ -189,15 +206,124 @@ func _generate_materials(index: int) -> void:
 func _generate_entities(index: int) -> void:
 	var entity: QEntity = _entities.keys()[index]
 
+## Find vertices, normals, and tangents
 func _generate_solid_data(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
 	var data: SolidData = _solid_data[entity]
 	if data == null: return
+	for brush in data.brushes:
+		# Find all brush vertices
+		var vertices := Geometry3D.compute_convex_mesh_points(brush.planes)
+		# Find vertices
+		for face in brush.faces:
+			for vertex in vertices:
+				if face.plane.has_point(vertex):
+					face.vertices.append(vertex)
+			# Sort vertices
+			if face.vertices.size() < 2: continue
+			var sorted_vertices: PackedVector3Array
+			var center: Vector3
+			for vertex in face.vertices: center += vertex
+			center /= face.vertices.size()
+			for n in face.vertices.size() - 2:
+				var a := (face.vertices[n] - center).normalized()
+				var p := Plane(face.vertices[n], center, center + face.plane.normal)
+				var smallest_angle: float = -1
+				var smallest: int = -1
+				for m in range(n+1, face.vertices.size()):
+					if face.vertices[m] != Vector3.UP:
+						var b := (face.vertices[m] - center).normalized()
+						var angle := a.dot(b)
+						if angle > smallest_angle:
+							smallest_angle = angle
+							smallest = m
+				sorted_vertices.append(face.vertices[smallest])
+				sorted_vertices.append(face.vertices[n+1])
+			face.vertices = sorted_vertices
+		# Generate normals
+		for face in brush.faces: for other_face in brush.faces:
+			if face == other_face: continue
+			face.normals.resize(face.vertices.size())
+			face.normals.fill(face.plane.normal)
+			# Apply phong to normals
+			if entity.phong:
+				var intersection: PackedInt32Array
+				intersection.resize(face.normals.size())
+				intersection.fill(1)
+				for n in face.vertices.size(): if other_face.vertices.has(face.vertices[n]):
+					face.normals[n] += other_face.plane.normal
+					intersection[n] += 1
+					break
+				for n in face.normals.size():
+					face.normals[n] /= intersection[n]
+		# Generate tangents
+		for face in brush.faces:
+			var tangent: PackedFloat32Array
+			if face.uv_format == QEntity.FaceFormat.VALVE_220:
+				var v_sign: float = -signf(face.plane.normal.cross(face.u_axis).dot(face.v_axis))
+				tangent = [face.u_axis.x, face.u_axis.y, face.u_axis.z, v_sign]
+			else: # Standard
+				var dx := face.plane.normal.dot(Vector3.BACK)
+				var dy := face.plane.normal.dot(Vector3.UP)
+				var dz := face.plane.normal.dot(Vector3.RIGHT)
+				var dxa := absf(dx)
+				var dya := absf(dy)
+				var dza := absf(dz)
+				var u_axis: Vector3
+				var v_sign: float = 0.0
+				if dya >= dxa and dya >= dza:
+					u_axis = Vector3.RIGHT
+					v_sign = signf(dy)
+				elif dxa >= dya and dxa >= dza:
+					u_axis = Vector3.RIGHT
+					v_sign = -signf(dx)
+				elif dza >= dya and dza >= dxa:
+					u_axis = Vector3.UP
+					v_sign = signf(dz)
+				v_sign *= signf(face.uv.get_scale().y)
+				u_axis = u_axis.rotated(face.plane.normal, deg_to_rad(-face.uv.get_rotation()) * v_sign)
+				tangent = [u_axis.x, u_axis.y, u_axis.z, v_sign]
+			# Translate to Y Z X W coordinates
+			for vertex in face.vertices:
+				face.tangents.append(tangent[1])
+				face.tangents.append(tangent[2])
+				face.tangents.append(tangent[0])
+				face.tangents.append(tangent[3])
 
+## Calculate solid entity origins
 func _calculate_origins(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
 	var data: SolidData = _solid_data[entity]
 	if data == null: return
+	# "origin" property will take priority
+	if entity.properties.has(&"origin"): return
+	# Otherwise use entity center bounds as origin
+	var entity_mins: Vector3 = Vector3.INF
+	var entity_maxs: Vector3 = Vector3.INF
+	var origin_mins: Vector3 = Vector3.INF
+	var origin_maxs: Vector3 = -Vector3.INF
+	for brush in data.brushes:
+		for face in brush.faces:
+			for vertex in face.vertices:
+				if entity_mins != Vector3.INF:
+					entity_mins = entity_mins.min(vertex)
+				else:
+					entity_mins = vertex
+				if entity_maxs != Vector3.INF:
+					entity_maxs = entity_maxs.max(vertex)
+				else:
+					entity_maxs = vertex
+				if brush.is_origin:
+					if origin_mins != Vector3.INF:
+						origin_mins = origin_mins.min(vertex)
+					else:
+						origin_mins = vertex
+					if origin_maxs != Vector3.INF:
+						origin_maxs = origin_maxs.max(vertex)
+					else:
+						origin_maxs = vertex
+	if entity_maxs != Vector3.INF and entity_mins != Vector3.INF:
+		data.origin = entity_maxs - ((entity_maxs - entity_mins) * 0.5)
 
 func _wind_faces(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
