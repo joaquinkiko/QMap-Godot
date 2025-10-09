@@ -249,7 +249,6 @@ func _generate_solid_data(index: int) -> void:
 			for vertex in vertices:
 				if face.plane.has_point(vertex):
 					face.vertices.append(vertex)
-			for vertex in face.vertices: print(vertex)
 			# Sort vertices
 			if face.vertices.size() < 3: continue
 			var center: Vector3
