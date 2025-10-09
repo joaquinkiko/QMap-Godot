@@ -119,7 +119,7 @@ func _create_texture_map() -> void:
 	var placeholder := PlaceholderMaterial.new()
 	for texturename in map.texturenames:
 		_materials[texturename] = placeholder
-		_texture_sizes[texturename] = Vector2.ONE
+		_texture_sizes[texturename] = Vector2.ONE * settings.scaling
 
 ## Fill [member _entities] and [member _solid_data]
 func _create_entity_maps() -> void:
@@ -166,7 +166,7 @@ func _load_wads(index: int) -> void:
 
 ## Create materials for [member _materials] and optionally cache materials
 func _generate_materials(index: int) -> void:
-	var texturename: StringName = _materials.keys()[index].validate_filename().to_lower()
+	var texturename: StringName = _materials.keys()[index]
 	if texturename == settings.texture_empty: return
 	if texturename == settings.texture_clip: return
 	if texturename == settings.texture_skip: return
@@ -195,9 +195,9 @@ func _generate_materials(index: int) -> void:
 		texture = wad.textures[texturename]
 	if texture != null:
 		material.set(settings.default_material_texture_path, texture)
+		_texture_sizes[texturename] = texture.get_size()
 	_materials[texturename] = material
-	_texture_sizes[texturename] = texture.get_size()
-	if settings.cache_materials:
+	if settings.cache_materials && texturename.is_valid_filename():
 		var is_cached: bool
 		for extension in settings.material_extensions:
 			if ResourceLoader.exists("%s/%s.%s"%[settings.cache_materials, texturename, extension]):
