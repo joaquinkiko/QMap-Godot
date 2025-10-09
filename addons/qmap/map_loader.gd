@@ -22,6 +22,7 @@ class SolidData extends RefCounted:
 		var uvs: PackedVector2Array
 		var indices: PackedInt32Array
 		var texture: StringName
+		var texture_size: Vector2
 	var brushes: Array[BrushData]
 	var origin: Vector3
 	var mesh: ArrayMesh
@@ -383,10 +384,62 @@ func _smooth_normals(index: int) -> void:
 		for n in face.normals.size():
 			face.normals[n] /= intersection[n]
 
+## Generate meshes
 func _generate_meshes(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
 	var data: SolidData = _solid_data[entity]
 	if data == null: return
+	var arrays: Array
+	arrays.resize(Mesh.ARRAY_MAX)
+	data.mesh = ArrayMesh.new()
+	for brush in data.brushes:
+		for face in brush.faces:
+			arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+			arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
+			arrays[Mesh.ARRAY_TANGENT] = PackedFloat32Array()
+			arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
+			#arrays[Mesh.ARRAY_COLOR] = PackedColorArray()
+			for i in face.indices:
+				arrays[Mesh.ARRAY_VERTEX].append(
+					_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor
+					)
+				arrays[Mesh.ARRAY_NORMAL].append(face.normals[i])
+				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4])
+				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 1])
+				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 2])
+				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 3])
+				arrays[Mesh.ARRAY_TEX_UV].append(
+					_get_tex_uv(face, _convert_coordinates(face.vertices[i]) * settings._scale_factor)
+					)
+			data.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+			var surface_index: int = data.mesh.get_surface_count() - 1
+			data.mesh.surface_set_material(surface_index, _materials[face.texture])
+			data.mesh.surface_set_name(surface_index, face.texture)
+
+func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
+	var tex_uv := Vector2.ONE * settings.scaling
+	if face.uv_format == QEntity.FaceFormat.VALVE_220:
+		tex_uv = Vector2(face.u_axis.dot(vertex), face.v_axis.dot(vertex))
+		tex_uv += (face.uv.origin * face.uv.get_scale())
+		tex_uv.x /= face.uv.x.x
+		tex_uv.y /= face.uv.y.y
+		tex_uv.x /= face.texture_size.x
+		tex_uv.y /= face.texture_size.y
+	else: # Standard
+		var nx := absf(face.plane.normal.dot(Vector3.RIGHT))
+		var ny := absf(face.plane.normal.dot(Vector3.UP))
+		var nz := absf(face.plane.normal.dot(Vector3.FORWARD))
+		if ny >= nx and ny >= nz:
+			tex_uv = Vector2(vertex.x, -vertex.z)
+		elif nx >= ny and nx >= nz:
+			tex_uv = Vector2(vertex.y, -vertex.z)
+		else:
+			tex_uv = Vector2(vertex.x, vertex.y)
+		tex_uv = tex_uv.rotated(face.uv.get_rotation())
+		tex_uv /= face.uv.get_scale()
+		tex_uv += face.uv.origin
+		tex_uv /= face.texture_size
+	return tex_uv
 
 func _pass_to_scene_tree() -> void:
 	for entity: QEntity in _entities.keys():
@@ -414,4 +467,9 @@ func _pass_to_scene_tree() -> void:
 		# Pass parsed_properties to node via _apply_map_properties method
 		if node.has_method(&"_apply_map_properties"):
 			node.call(&"_apply_map_properties", parsed_properties)
+		# Add mesh
+		if data != null:
+			var mesh_instance := MeshInstance3D.new()
+			mesh_instance.mesh = data.mesh
+			_entities[entity].add_child(mesh_instance)
 		add_child(node, true)
