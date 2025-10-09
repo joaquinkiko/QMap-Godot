@@ -122,9 +122,11 @@ func _create_entity_maps() -> void:
 			data.origin = entity.origin
 			for brush in entity.brushes:
 				var brush_data := SolidData.BrushData.new()
+				brush_data.is_origin = true
 				for face in brush.faces:
 					var face_data := SolidData.FaceData.new()
 					face_data.texture = face.texturename
+					if face.texturename != settings.texture_origin: brush_data.is_origin = false
 					brush_data.faces.append(face_data)
 				data.brushes.append(brush_data)
 			_solid_data[entity] = data
