@@ -393,7 +393,10 @@ func _generate_meshes(index: int) -> void:
 	arrays.resize(Mesh.ARRAY_MAX)
 	data.mesh = ArrayMesh.new()
 	for brush in data.brushes:
+		if brush.is_origin: continue
 		for face in brush.faces:
+			if face.texture == settings.texture_clip || face.texture == settings.texture_skip:
+				continue
 			arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 			arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
 			arrays[Mesh.ARRAY_TANGENT] = PackedFloat32Array()
