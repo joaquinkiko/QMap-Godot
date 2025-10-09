@@ -410,7 +410,7 @@ func _generate_meshes(index: int) -> void:
 				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 2])
 				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 3])
 				arrays[Mesh.ARRAY_TEX_UV].append(
-					_get_tex_uv(face, _convert_coordinates(face.vertices[i]) * settings._scale_factor)
+					_get_tex_uv(face, face.vertices[i])
 					)
 			data.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 			var surface_index: int = data.mesh.get_surface_count() - 1
@@ -418,7 +418,7 @@ func _generate_meshes(index: int) -> void:
 			data.mesh.surface_set_name(surface_index, face.texture)
 
 func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
-	var tex_uv := Vector2.ONE * settings.scaling
+	var tex_uv := Vector2.ONE
 	var texture_size: Vector2 = _texture_sizes[face.texture]
 	if face.uv_format == QEntity.FaceFormat.VALVE_220:
 		tex_uv = Vector2(face.u_axis.dot(vertex), face.v_axis.dot(vertex))
