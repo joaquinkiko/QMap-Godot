@@ -241,21 +241,9 @@ func _generate_solid_data(index: int) -> void:
 				sorted_vertices.append(face.vertices[n+1])
 			face.vertices = sorted_vertices
 		# Generate normals
-		for face in brush.faces: for other_face in brush.faces:
-			if face == other_face: continue
+		for face in brush.faces:
 			face.normals.resize(face.vertices.size())
 			face.normals.fill(face.plane.normal)
-			# Apply phong to normals
-			if entity.phong:
-				var intersection: PackedInt32Array
-				intersection.resize(face.normals.size())
-				intersection.fill(1)
-				for n in face.vertices.size(): if other_face.vertices.has(face.vertices[n]):
-					face.normals[n] += other_face.plane.normal
-					intersection[n] += 1
-					break
-				for n in face.normals.size():
-					face.normals[n] /= intersection[n]
 		# Generate tangents
 		for face in brush.faces:
 			var tangent: PackedFloat32Array
@@ -344,10 +332,23 @@ func _index_faces(index: int) -> void:
 			face.indices[i + 2] = n + 2
 			i += 3
 
+## Apply "_phong" to normals
 func _smooth_normals(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
 	var data: SolidData = _solid_data[entity]
+	if !entity.phong: return
 	if data == null: return
+	for brush in data.brushes: for face in brush.faces: for other_face in brush.faces:
+		if face == other_face: continue
+		var intersection: PackedInt32Array
+		intersection.resize(face.normals.size())
+		intersection.fill(1)
+		for n in face.vertices.size(): if other_face.vertices.has(face.vertices[n]):
+			face.normals[n] += other_face.plane.normal
+			intersection[n] += 1
+			break
+		for n in face.normals.size():
+			face.normals[n] /= intersection[n]
 
 func _generate_meshes(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
