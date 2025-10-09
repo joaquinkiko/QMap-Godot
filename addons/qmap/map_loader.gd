@@ -376,6 +376,17 @@ func _generate_meshes(index: int) -> void:
 
 func _pass_to_scene_tree() -> void:
 	for entity: QEntity in _entities.keys():
+		var data: SolidData = _solid_data[entity]
 		var node := _entities[entity]
 		node.name = entity.classname
+		if data != null:
+			node.set(&"position", _convert_coordinates(data.origin) * settings._scale_factor)
+		else:
+			node.set(&"position", _convert_coordinates(entity.origin) * settings._scale_factor)
+			node.set(&"rotation_degrees", entity.angle)
+			var current_scale = node.get(&"scale")
+			if current_scale != null: node.set(&"scale", current_scale * entity.scale)
+		var parsed_properties := entity.get_parsed_properties(settings.fgd, settings)
+		for key in parsed_properties.keys():
+			node.set(key, parsed_properties[key])
 		add_child(node, true)
