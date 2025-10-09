@@ -318,6 +318,7 @@ func _wind_faces(index: int) -> void:
 	var data: SolidData = _solid_data[entity]
 	if data == null: return
 
+## Create triangle indices
 func _index_faces(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
 	var data: SolidData = _solid_data[entity]
