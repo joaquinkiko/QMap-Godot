@@ -46,6 +46,7 @@ var _wads: Array[WAD]
 var _materials: Dictionary[StringName, Material]
 var _entities: Dictionary[QEntity, Node]
 var _solid_data: Dictionary[QEntity, SolidData]
+var _target_destinations: Dictionary[StringName, Node]
 
 func _ready() -> void:
 	if auto_load_map: load_map()
@@ -108,6 +109,7 @@ func load_map() -> Error:
 	_materials.clear()
 	_entities.clear()
 	_solid_data.clear()
+	_target_destinations.clear()
 	if verbose: print("Finished generating map in %sms"%(Time.get_ticks_msec() - start_time))
 	progress.emit(1)
 	return OK
@@ -211,18 +213,29 @@ func _generate_entities(index: int) -> void:
 			_entities[entity] = StaticBody3D.new()
 		else:
 			_entities[entity] = Node.new()
+		_get_target_destinations(entity, _entities[entity])
 		return
 	for path in settings.paths_scenes: for extension in ["tscn","scn"]:
 		if ResourceLoader.exists("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension]):
 			var scene: PackedScene = ResourceLoader.load("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension])
 			if scene != null:
 				_entities[entity] = scene.instantiate()
+				_get_target_destinations(entity, _entities[entity])
 				return
 	if entity.brushes.size() > 0:
 		_entities[entity] = StaticBody3D.new()
 	else:
 		_entities[entity] = Node3D.new()
+	_get_target_destinations(entity, _entities[entity])
 	return
+
+## Checks if node should be added to [member _target_destinations]
+func _get_target_destinations(entity: QEntity, node: Node) -> void:
+	if settings.fgd.classes.has(entity.classname):
+		for key in entity.properties.keys():
+			if settings.fgd.classes[entity.classname].properties.has(key):
+				if settings.fgd.classes[entity.classname].properties[key].type == FGDEntityProperty.PropertyType.TARGET_DESTINATION:
+					_target_destinations[entity.properties[key]] = node
 
 ## Find vertices, normals, and tangents
 func _generate_solid_data(index: int) -> void:
@@ -343,6 +356,7 @@ func _index_faces(index: int) -> void:
 	if data == null: return
 	for brush in data.brushes: for face in brush.faces:
 		var triangle_count := face.vertices.size() - 2
+		if triangle_count < 1: continue
 		face.indices.resize(triangle_count * 3)
 		var i := 0
 		for n in triangle_count:
@@ -379,6 +393,7 @@ func _pass_to_scene_tree() -> void:
 		var data: SolidData = _solid_data[entity]
 		var node := _entities[entity]
 		node.name = entity.classname
+		# Apply position, rotation, and scale modifications
 		if data != null:
 			node.set(&"position", _convert_coordinates(data.origin) * settings._scale_factor)
 		else:
@@ -388,5 +403,15 @@ func _pass_to_scene_tree() -> void:
 			if current_scale != null: node.set(&"scale", current_scale * entity.scale)
 		var parsed_properties := entity.get_parsed_properties(settings.fgd, settings)
 		for key in parsed_properties.keys():
-			node.set(key, parsed_properties[key])
+			# Set properties on node if they are present in FGD as well
+			if settings.fgd.classes.has(entity.classname) && settings.fgd.classes[entity.classname].properties.has(key):
+				if settings.fgd.classes[entity.classname].properties[key].type == FGDEntityProperty.PropertyType.TARGET_SOURCE:
+					# Update target_destination properties to Node references
+					if _target_destinations.has(parsed_properties[key]):
+						parsed_properties[key] = _target_destinations[parsed_properties[key]]
+					else: parsed_properties[key] = null
+				node.set(key, parsed_properties[key])
+		# Pass parsed_properties to node via _apply_map_properties method
+		if node.has_method(&"_apply_map_properties"):
+			node.call(&"_apply_map_properties", parsed_properties)
 		add_child(node, true)
