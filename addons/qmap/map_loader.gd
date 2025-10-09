@@ -203,8 +203,26 @@ func _generate_materials(index: int) -> void:
 				DirAccess.make_dir_absolute(settings.cache_path)
 			ResourceSaver.save(material, "%s/%s.%s"%[settings.cache_path, texturename, settings.material_extensions[0]])
 
+## Generate nodes for entities
 func _generate_entities(index: int) -> void:
 	var entity: QEntity = _entities.keys()[index]
+	if false: if !settings.fgd.classes.has(entity.classname):
+		if entity.brushes.size() > 0:
+			_entities[entity] = StaticBody3D.new()
+		else:
+			_entities[entity] = Node.new()
+		return
+	for path in settings.paths_scenes: for extension in ["tscn","scn"]:
+		if ResourceLoader.exists("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension]):
+			var scene: PackedScene = ResourceLoader.load("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension])
+			if scene != null:
+				_entities[entity] = scene.instantiate()
+				return
+	if entity.brushes.size() > 0:
+		_entities[entity] = StaticBody3D.new()
+	else:
+		_entities[entity] = Node3D.new()
+	return
 
 ## Find vertices, normals, and tangents
 func _generate_solid_data(index: int) -> void:
@@ -357,5 +375,7 @@ func _generate_meshes(index: int) -> void:
 	if data == null: return
 
 func _pass_to_scene_tree() -> void:
-	for entity in _entities.keys():
+	for entity: QEntity in _entities.keys():
 		var node := _entities[entity]
+		node.name = entity.classname
+		add_child(node, true)
