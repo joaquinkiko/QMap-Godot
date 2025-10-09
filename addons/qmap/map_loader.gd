@@ -92,8 +92,6 @@ func load_map() -> Error:
 	progress.emit(0.4)
 	_thread_group_task(_calculate_origins, _solid_data.size(), "Calculating origins")
 	progress.emit(0.45)
-	_thread_group_task(_wind_faces, _solid_data.size(), "Winding faces")
-	progress.emit(0.5)
 	_thread_group_task(_index_faces, _solid_data.size(), "Indexing faces")
 	progress.emit(0.65)
 	_thread_group_task(_smooth_normals, _solid_data.size(), "Smoothing normals")
@@ -251,27 +249,28 @@ func _generate_solid_data(index: int) -> void:
 			for vertex in vertices:
 				if face.plane.has_point(vertex):
 					face.vertices.append(vertex)
+			for vertex in face.vertices: print(vertex)
 			# Sort vertices
-			if face.vertices.size() < 2: continue
-			var sorted_vertices: PackedVector3Array
+			if face.vertices.size() < 3: continue
 			var center: Vector3
 			for vertex in face.vertices: center += vertex
 			center /= face.vertices.size()
-			for n in face.vertices.size() - 2:
-				var a := (face.vertices[n] - center).normalized()
-				var p := Plane(face.vertices[n], center, center + face.plane.normal)
-				var smallest_angle: float = -1
-				var smallest: int = -1
-				for m in range(n+1, face.vertices.size()):
-					if face.vertices[m] != Vector3.UP:
-						var b := (face.vertices[m] - center).normalized()
-						var angle := a.dot(b)
-						if angle > smallest_angle:
-							smallest_angle = angle
-							smallest = m
-				sorted_vertices.append(face.vertices[smallest])
-				sorted_vertices.append(face.vertices[n+1])
-			face.vertices = sorted_vertices
+			var u_axis: Vector3
+			if face.vertices.size() >= 2:
+				u_axis = (face.vertices[1] - face.vertices[0]).normalized()
+			var v_axis: Vector3 = u_axis.cross(face.plane.normal).normalized()
+			var cmp_winding_angle: Callable = (
+				func(a: Vector3, b: Vector3) -> bool:
+					var dir_a: Vector3 = a - center
+					var dir_b: Vector3 = b - center
+					var angle_a: float = atan2(dir_a.dot(v_axis), dir_a.dot(u_axis))
+					var angle_b: float = atan2(dir_b.dot(v_axis), dir_b.dot(u_axis))
+					return angle_a < angle_b
+			)
+			var _vertices: Array[Vector3]
+			_vertices.assign(face.vertices)
+			_vertices.sort_custom(cmp_winding_angle)
+			face.vertices = _vertices
 		# Generate normals
 		for face in brush.faces:
 			face.normals.resize(face.vertices.size())
@@ -309,6 +308,7 @@ func _generate_solid_data(index: int) -> void:
 				face.tangents.append(tangent[2])
 				face.tangents.append(tangent[0])
 				face.tangents.append(tangent[3])
+			
 
 ## Calculate solid entity origins
 func _calculate_origins(index: int) -> void:
@@ -344,11 +344,6 @@ func _calculate_origins(index: int) -> void:
 						origin_maxs = vertex
 	if entity_maxs != Vector3.INF and entity_mins != Vector3.INF:
 		data.origin = entity_maxs - ((entity_maxs - entity_mins) * 0.5)
-
-func _wind_faces(index: int) -> void:
-	var entity: QEntity = _solid_data.keys()[index]
-	var data: SolidData = _solid_data[entity]
-	if data == null: return
 
 ## Create triangle indices
 func _index_faces(index: int) -> void:
