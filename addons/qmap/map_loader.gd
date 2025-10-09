@@ -334,6 +334,15 @@ func _index_faces(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
 	var data: SolidData = _solid_data[entity]
 	if data == null: return
+	for brush in data.brushes: for face in brush.faces:
+		var triangle_count := face.vertices.size() - 2
+		face.indices.resize(triangle_count * 3)
+		var i := 0
+		for n in triangle_count:
+			face.indices[i] = 0
+			face.indices[i + 1] = n + 1
+			face.indices[i + 2] = n + 2
+			i += 3
 
 func _smooth_normals(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
