@@ -118,6 +118,9 @@ var texturenames: PackedStringArray:
 ## Array of strings from property "_tb_mod"
 var mods: PackedStringArray:
 	get: return properties.get(&"_tb_mod", "").split(";", false)
+## Property "_phong"
+var phong: bool:
+	get: return bool(properties.get(&"_phong", "0").to_int())
 ## Array of brushes
 var brushes: Array[Brush]
 
