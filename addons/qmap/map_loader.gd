@@ -22,7 +22,6 @@ class SolidData extends RefCounted:
 		var uvs: PackedVector2Array
 		var indices: PackedInt32Array
 		var texture: StringName
-		var texture_size: Vector2
 	var brushes: Array[BrushData]
 	var origin: Vector3
 	var mesh: ArrayMesh
@@ -45,6 +44,7 @@ signal progress(percentage: float)
 var _current_wad_paths: PackedStringArray
 var _wads: Array[WAD]
 var _materials: Dictionary[StringName, Material]
+var _texture_sizes: Dictionary[StringName, Vector2]
 var _entities: Dictionary[QEntity, Node]
 var _solid_data: Dictionary[QEntity, SolidData]
 var _target_destinations: Dictionary[StringName, Node]
@@ -106,6 +106,7 @@ func load_map() -> Error:
 	_current_wad_paths.clear()
 	_wads.clear()
 	_materials.clear()
+	_texture_sizes.clear()
 	_entities.clear()
 	_solid_data.clear()
 	_target_destinations.clear()
@@ -118,6 +119,7 @@ func _create_texture_map() -> void:
 	var placeholder := PlaceholderMaterial.new()
 	for texturename in map.texturenames:
 		_materials[texturename] = placeholder
+		_texture_sizes[texturename] = Vector2.ONE
 
 ## Fill [member _entities] and [member _solid_data]
 func _create_entity_maps() -> void:
@@ -176,6 +178,7 @@ func _generate_materials(index: int) -> void:
 			if ResourceLoader.exists("%s/%s.%s"%[settings.cache_materials, texturename, extension]):
 				material = ResourceLoader.load("%s/%s.%s"%[settings.cache_materials, texturename, extension])
 				_materials[texturename] = material
+				_texture_sizes[texturename] = material.get(settings.default_material_texture_path).get_size()
 				return
 	for path in settings.paths_materials: for extension in settings.material_extensions:
 		if ResourceLoader.exists("%s/%s.%s"%[path, texturename, extension]):
@@ -193,6 +196,7 @@ func _generate_materials(index: int) -> void:
 	if texture != null:
 		material.set(settings.default_material_texture_path, texture)
 	_materials[texturename] = material
+	_texture_sizes[texturename] = texture.get_size()
 	if settings.cache_materials:
 		var is_cached: bool
 		for extension in settings.material_extensions:
@@ -415,13 +419,14 @@ func _generate_meshes(index: int) -> void:
 
 func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 	var tex_uv := Vector2.ONE * settings.scaling
+	var texture_size: Vector2 = _texture_sizes[face.texture]
 	if face.uv_format == QEntity.FaceFormat.VALVE_220:
 		tex_uv = Vector2(face.u_axis.dot(vertex), face.v_axis.dot(vertex))
 		tex_uv += (face.uv.origin * face.uv.get_scale())
 		tex_uv.x /= face.uv.x.x
 		tex_uv.y /= face.uv.y.y
-		tex_uv.x /= face.texture_size.x
-		tex_uv.y /= face.texture_size.y
+		tex_uv.x /= texture_size.x
+		tex_uv.y /= texture_size.y
 	else: # Standard
 		var nx := absf(face.plane.normal.dot(Vector3.RIGHT))
 		var ny := absf(face.plane.normal.dot(Vector3.UP))
@@ -435,7 +440,7 @@ func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 		tex_uv = tex_uv.rotated(face.uv.get_rotation())
 		tex_uv /= face.uv.get_scale()
 		tex_uv += face.uv.origin
-		tex_uv /= face.texture_size
+		tex_uv /= texture_size
 	return tex_uv
 
 func _pass_to_scene_tree() -> void:
