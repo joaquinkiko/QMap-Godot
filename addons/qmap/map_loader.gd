@@ -127,7 +127,9 @@ func _create_texture_map() -> void:
 
 ## Fill [member _entities] and [member _solid_data]
 func _create_entity_maps() -> void:
-	if verbose: print("\t\t-Initializing %s entities..."%map.entities.size())
+	var brush_count: int
+	for entity in map.entities: brush_count += entity.brushes.size()
+	if verbose: print("\t\t-Initializing %s entities and %s brushes..."%[map.entities.size(),brush_count])
 	for entity in map.entities:
 		_entities[entity] = null
 		if entity.brushes.size() > 0:
