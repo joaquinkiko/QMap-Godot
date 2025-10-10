@@ -96,6 +96,10 @@ func load_map() -> Error:
 	progress.emit(0.65)
 	_thread_group_task(_smooth_normals, _solid_data.size(), "Smoothing normals")
 	progress.emit(0.75)
+	_thread_group_task(_sort_brushes, _solid_data.size(), "Sorting brushes")
+	progress.emit(0.8)
+	_thread_group_task(_sort_faces, _solid_data.size(), "Sorting faces")
+	progress.emit(0.85)
 	_thread_group_task(_generate_meshes, _solid_data.size(), "Generating meshes")
 	progress.emit(0.9)
 	if verbose: print("\t-Adding to SceneTree...")
@@ -381,6 +385,29 @@ func _smooth_normals(index: int) -> void:
 			break
 		for n in face.normals.size():
 			face.normals[n] /= intersection[n]
+
+func _sort_brushes(index: int) -> void:
+	var entity: QEntity = _solid_data.keys()[index]
+	var data: SolidData = _solid_data[entity]
+	if data == null: return
+	var sorted_brushes: Array[SolidData.BrushData]
+
+## Sort faces in order of matching textures
+func _sort_faces(index: int) -> void:
+	var entity: QEntity = _solid_data.keys()[index]
+	var data: SolidData = _solid_data[entity]
+	if data == null: return
+	for brush in data.brushes:
+		if brush.faces.size() < 3: continue
+		var texture_faces: Dictionary[StringName, Array]
+		for face in brush.faces:
+			if !texture_faces.has(face.texture): texture_faces[face.texture] = []
+			texture_faces[face.texture].append(face)
+		var sorted_faces: Array[SolidData.FaceData]
+		for array in texture_faces.values():
+			if array == null: continue
+			sorted_faces.append_array(array)
+		brush.faces = sorted_faces
 
 ## Generate meshes
 func _generate_meshes(index: int) -> void:
