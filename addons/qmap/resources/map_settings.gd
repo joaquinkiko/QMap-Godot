@@ -21,10 +21,6 @@ class_name QMapSettings extends Resource
 @export var texture_extensions: PackedStringArray = ["png", "jpg", "jpeg", "bmp", "tga"]
 ## Valid material extensions to load from
 @export var material_extensions: PackedStringArray = ["tres"]
-## If true, generated materials will be cached for faster loading
-@export var cache_materials: bool = true
-## Directory to cache material when [member cache_materials] is true
-@export var cache_path: String = "user://material_cache"
 @export_group("Resource Paths")
 ## Paths sorted by priority to load scenes from
 @export_dir var paths_scenes: PackedStringArray = ["res://"]

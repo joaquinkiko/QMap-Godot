@@ -179,7 +179,7 @@ func _load_wads(index: int) -> void:
 				return
 	printerr("\t\t-Missing WAD: %s"%map.wad_paths[index])
 
-## Create materials for [member _materials] and optionally cache materials
+## Create materials for [member _materials]
 func _generate_materials(index: int) -> void:
 	var texturename: StringName = _materials.keys()[index]
 	for texture in settings.empty_textures:
@@ -190,13 +190,6 @@ func _generate_materials(index: int) -> void:
 	var texture_wad_name: String = texturename.to_lower() # Wad safe name
 	var texture: Texture2D
 	var material: Material
-	if settings.cache_materials:
-		for extension in settings.material_extensions:
-			if ResourceLoader.exists("%s/%s.%s"%[settings.cache_materials, texture_filename, extension]):
-				material = ResourceLoader.load("%s/%s.%s"%[settings.cache_materials, texture_filename, extension])
-				_materials[texturename] = material
-				_texture_sizes[texturename] = material.get(settings.default_material_texture_path).get_size()
-				return
 	for path in settings.paths_materials: for extension in settings.material_extensions:
 		if ResourceLoader.exists("%s/%s.%s"%[path, texture_filename, extension]):
 			material = ResourceLoader.load("%s/%s.%s"%[path, texture_filename, extension])
@@ -214,16 +207,6 @@ func _generate_materials(index: int) -> void:
 		material.set(settings.default_material_texture_path, texture)
 		_texture_sizes[texturename] = texture.get_size()
 	_materials[texturename] = material
-	if settings.cache_materials:
-		var is_cached: bool
-		for extension in settings.material_extensions:
-			if ResourceLoader.exists("%s/%s.%s"%[settings.cache_materials, texture_filename, extension]):
-				is_cached = true
-				break
-		if !is_cached && settings.material_extensions.size() > 0:
-			if !DirAccess.dir_exists_absolute(settings.cache_path):
-				DirAccess.make_dir_absolute(settings.cache_path)
-			ResourceSaver.save(material, "%s/%s.%s"%[settings.cache_path, texture_filename, settings.material_extensions[0]])
 
 ## Generate nodes for entities
 func _generate_entities(index: int) -> void:
