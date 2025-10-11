@@ -39,6 +39,8 @@ signal progress(percentage: float, task: String)
 @export var auto_load_map: bool = true
 ## When true will load any [WAD] listed in [QMap] properties under the key "wads"
 @export var auto_load_internal_wads: bool = true
+## While true main thread will be paused during loading (may improve loading speed)
+@export var pause_main_thread_while_loading: bool = true
 @export_group("Debug Settings")
 ## When true will print debug info while map loads
 @export var verbose: bool = true
@@ -60,6 +62,8 @@ func _thread_group_task(task: Callable, elements: int, task_debug: String) -> vo
 	if verbose: print("\t-%s..."%task_debug)
 	var interval_time := Time.get_ticks_msec()
 	var task_id := WorkerThreadPool.add_group_task(task, elements, -1, false, task_debug)
+	if !pause_main_thread_while_loading: while !WorkerThreadPool.is_group_task_completed(task_id):
+		await get_tree().process_frame
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 
@@ -87,25 +91,25 @@ func load_map() -> Error:
 		_current_wad_paths.append(wad.resource_path)
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - start_time))
 	progress.emit(0.1, "Loading wads")
-	_thread_group_task(_load_wads, map.wad_paths.size(), "Loading wads")
+	await _thread_group_task(_load_wads, map.wad_paths.size(), "Loading wads")
 	progress.emit(0.4, "Generating materials")
-	_thread_group_task(_generate_materials, _materials.size(), "Generating materials")
+	await _thread_group_task(_generate_materials, _materials.size(), "Generating materials")
 	progress.emit(0.50, "Generating entities")
-	_thread_group_task(_generate_entities, _entities.size(), "Generating entities")
+	await _thread_group_task(_generate_entities, _entities.size(), "Generating entities")
 	progress.emit(0.55, "Generating Solid Data")
-	_thread_group_task(_generate_solid_data, _solid_data.size(), "Generating Solid Data")
+	await _thread_group_task(_generate_solid_data, _solid_data.size(), "Generating Solid Data")
 	progress.emit(0.65, "Calculating origins")
-	_thread_group_task(_calculate_origins, _solid_data.size(), "Calculating origins")
+	await _thread_group_task(_calculate_origins, _solid_data.size(), "Calculating origins")
 	progress.emit(0.67, "Indexing faces")
-	_thread_group_task(_index_faces, _solid_data.size(), "Indexing faces")
+	await _thread_group_task(_index_faces, _solid_data.size(), "Indexing faces")
 	progress.emit(0.69, "Smoothing normals")
-	_thread_group_task(_smooth_normals, _solid_data.size(), "Smoothing normals")
+	await _thread_group_task(_smooth_normals, _solid_data.size(), "Smoothing normals")
 	progress.emit(0.71, "Sorting brushes")
-	_thread_group_task(_sort_brushes, _solid_data.size(), "Sorting brushes")
+	await _thread_group_task(_sort_brushes, _solid_data.size(), "Sorting brushes")
 	progress.emit(0.73, "Sorting faces")
-	_thread_group_task(_sort_faces, _solid_data.size(), "Sorting faces")
+	await _thread_group_task(_sort_faces, _solid_data.size(), "Sorting faces")
 	progress.emit(0.75, "Generating meshes")
-	_thread_group_task(_generate_meshes, _solid_data.size(), "Generating meshes")
+	await _thread_group_task(_generate_meshes, _solid_data.size(), "Generating meshes")
 	progress.emit(0.95, "Spawning entities")
 	if verbose: print("\t-Spawning entities...")
 	var interval_time := Time.get_ticks_msec()
