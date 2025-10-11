@@ -143,7 +143,7 @@ func _create_entity_maps() -> void:
 				for face in brush.faces:
 					var face_data := SolidData.FaceData.new()
 					face_data.texture = face.texturename
-					if face.texturename != settings.texture_origin: brush_data.is_origin = false
+					if face.texturename.to_lower() != settings.texture_origin.to_lower(): brush_data.is_origin = false
 					face_data.plane = face.plane
 					face_data.uv = face.uv
 					face_data.uv_format = face.format
@@ -174,10 +174,10 @@ func _load_wads(index: int) -> void:
 ## Create materials for [member _materials] and optionally cache materials
 func _generate_materials(index: int) -> void:
 	var texturename: StringName = _materials.keys()[index]
-	if texturename == settings.texture_empty: return
-	if texturename == settings.texture_clip: return
-	if texturename == settings.texture_skip: return
-	if texturename == settings.texture_origin: return
+	for texture in settings.empty_textures:
+		if texturename.to_lower() == texture.to_lower(): return
+	for texture in settings.non_rendered_textures:
+		if texturename.to_lower() == texture.to_lower(): return
 	var texture_filename: String = texturename.to_lower().validate_filename() # Filesystem safe name
 	var texture_wad_name: String = texturename.to_lower() # Wad safe name
 	var texture: Texture2D
@@ -426,7 +426,6 @@ func _generate_meshes(index: int) -> void:
 		if n >= 64:
 			printerr("Max surfaces exceeded on %s!"%entity.classname)
 			break
-		if texturenames[n] == settings.texture_clip || texturenames[n] == settings.texture_skip: continue
 		arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
 		arrays[Mesh.ARRAY_TANGENT] = PackedFloat32Array()
@@ -448,6 +447,12 @@ func _generate_meshes(index: int) -> void:
 		data.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		data.mesh.surface_set_material(n, _materials[texturenames[n]])
 		data.mesh.surface_set_name(n, texturenames[n])
+	var surfaces_to_remove := PackedInt32Array()
+	for n in data.mesh.get_surface_count():
+		for texture in settings.non_rendered_textures:
+			if data.mesh.surface_get_name(n).to_lower() == texture.to_lower():
+				surfaces_to_remove.append(n)
+	for n in surfaces_to_remove: data.mesh.surface_remove(n)
 
 func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 	var tex_uv := Vector2.ONE

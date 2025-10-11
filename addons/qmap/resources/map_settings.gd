@@ -8,14 +8,12 @@ class_name QMapSettings extends Resource
 ## Ratio for UV unwrapping
 @export_range(1, 256, 1) var uv_unwrap_texel_ratio: int = 16
 @export_group("Special Textures")
-## Clip texturename
-@export var texture_clip: StringName = "clip"
-## Skip texturename
-@export var texture_skip: StringName = "skip"
-## Origin texturename
+## This texture will be used to identify orign brushes
 @export var texture_origin: StringName = "origin"
-## Empty texturename
-@export var texture_empty: StringName = "__TB_empty"
+## These textures will not be rendered
+@export var non_rendered_textures: Array[StringName] = ["clip", "skip", "trigger", "hint", "null"]
+## These textures will just use the default placeholder
+@export var empty_textures: Array[StringName] = ["__tb_empty"]
 @export_group("Texture Settings")
 ## Wad files to always load during map generation
 @export var extra_wads: Array[WAD]
