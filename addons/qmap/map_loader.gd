@@ -178,42 +178,44 @@ func _generate_materials(index: int) -> void:
 	if texturename == settings.texture_clip: return
 	if texturename == settings.texture_skip: return
 	if texturename == settings.texture_origin: return
+	var texture_filename: String = texturename.to_lower().validate_filename() # Filesystem safe name
+	var texture_wad_name: String = texturename.to_lower() # Wad safe name
 	var texture: Texture2D
 	var material: Material
 	if settings.cache_materials:
 		for extension in settings.material_extensions:
-			if ResourceLoader.exists("%s/%s.%s"%[settings.cache_materials, texturename, extension]):
-				material = ResourceLoader.load("%s/%s.%s"%[settings.cache_materials, texturename, extension])
+			if ResourceLoader.exists("%s/%s.%s"%[settings.cache_materials, texture_filename, extension]):
+				material = ResourceLoader.load("%s/%s.%s"%[settings.cache_materials, texture_filename, extension])
 				_materials[texturename] = material
 				_texture_sizes[texturename] = material.get(settings.default_material_texture_path).get_size()
 				return
 	for path in settings.paths_materials: for extension in settings.material_extensions:
-		if ResourceLoader.exists("%s/%s.%s"%[path, texturename, extension]):
-			material = ResourceLoader.load("%s/%s.%s"%[path, texturename, extension])
+		if ResourceLoader.exists("%s/%s.%s"%[path, texture_filename, extension]):
+			material = ResourceLoader.load("%s/%s.%s"%[path, texture_filename, extension])
 	if material == null:
 		if settings.default_material != null:
 			material = settings.default_material.duplicate()
 		else: material = StandardMaterial3D.new()
 	for path in settings.paths_textures: for extension in settings.texture_extensions:
-		if ResourceLoader.exists("%s/%s.%s"%[path, texturename, extension]):
-			texture = ResourceLoader.load("%s/%s.%s"%[path, texturename, extension])
+		if ResourceLoader.exists("%s/%s.%s"%[path, texture_filename, extension]):
+			texture = ResourceLoader.load("%s/%s.%s"%[path, texture_filename, extension])
 	if texture == null: for wad in _wads:
-		if !wad.textures.has(texturename): continue
-		texture = wad.textures[texturename]
+		if !wad.textures.has(texture_wad_name): continue
+		texture = wad.textures[texture_wad_name]
 	if texture != null:
 		material.set(settings.default_material_texture_path, texture)
 		_texture_sizes[texturename] = texture.get_size()
 	_materials[texturename] = material
-	if settings.cache_materials && texturename.is_valid_filename():
+	if settings.cache_materials:
 		var is_cached: bool
 		for extension in settings.material_extensions:
-			if ResourceLoader.exists("%s/%s.%s"%[settings.cache_materials, texturename, extension]):
+			if ResourceLoader.exists("%s/%s.%s"%[settings.cache_materials, texture_filename, extension]):
 				is_cached = true
 				break
 		if !is_cached && settings.material_extensions.size() > 0:
 			if !DirAccess.dir_exists_absolute(settings.cache_path):
 				DirAccess.make_dir_absolute(settings.cache_path)
-			ResourceSaver.save(material, "%s/%s.%s"%[settings.cache_path, texturename, settings.material_extensions[0]])
+			ResourceSaver.save(material, "%s/%s.%s"%[settings.cache_path, texture_filename, settings.material_extensions[0]])
 
 ## Generate nodes for entities
 func _generate_entities(index: int) -> void:
