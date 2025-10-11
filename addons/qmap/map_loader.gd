@@ -441,7 +441,7 @@ func _generate_meshes(index: int) -> void:
 	var texturenames: Array[StringName] = data.sorted_faces.keys()
 	texturenames.sort()
 	for n in texturenames.size():
-		if n >= 64:
+		if n == RenderingServer.MAX_MESH_SURFACES:
 			printerr("Max surfaces exceeded on %s!"%entity.classname)
 			break
 		arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
