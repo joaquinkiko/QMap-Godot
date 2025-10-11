@@ -25,6 +25,7 @@ class SolidData extends RefCounted:
 	var brushes: Array[BrushData]
 	var origin: Vector3
 	var mesh: ArrayMesh
+	var sorted_faces: Dictionary[StringName, Array]
 
 ## Emitted at map loading stages (value from 0.0-1.0)
 signal progress(percentage: float)
@@ -400,16 +401,14 @@ func _sort_faces(index: int) -> void:
 	var data: SolidData = _solid_data[entity]
 	if data == null: return
 	for brush in data.brushes:
-		if brush.faces.size() < 3: continue
+		if brush.is_origin: continue
 		var texture_faces: Dictionary[StringName, Array]
 		for face in brush.faces:
 			if !texture_faces.has(face.texture): texture_faces[face.texture] = []
 			texture_faces[face.texture].append(face)
-		var sorted_faces: Array[SolidData.FaceData]
-		for array in texture_faces.values():
-			if array == null: continue
-			sorted_faces.append_array(array)
-		brush.faces = sorted_faces
+		for key in texture_faces.keys():
+			if data.sorted_faces.has(key): data.sorted_faces[key].append_array(texture_faces[key])
+			else: data.sorted_faces[key] = texture_faces[key]
 
 ## Generate meshes
 func _generate_meshes(index: int) -> void:
@@ -419,21 +418,24 @@ func _generate_meshes(index: int) -> void:
 	var arrays: Array
 	arrays.resize(Mesh.ARRAY_MAX)
 	data.mesh = ArrayMesh.new()
-	for brush in data.brushes:
-		if brush.is_origin: continue
-		for face in brush.faces:
-			if face.texture == settings.texture_clip || face.texture == settings.texture_skip:
-				continue
-			arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
-			arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
-			arrays[Mesh.ARRAY_TANGENT] = PackedFloat32Array()
-			arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
-			#arrays[Mesh.ARRAY_COLOR] = PackedColorArray()
+	var texturenames: Array[StringName] = data.sorted_faces.keys()
+	texturenames.sort()
+	for n in texturenames.size():
+		if n >= 64:
+			printerr("Max surfaces exceeded on %s!"%entity.classname)
+			break
+		if texturenames[n] == settings.texture_clip || texturenames[n] == settings.texture_skip: continue
+		arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+		arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
+		arrays[Mesh.ARRAY_TANGENT] = PackedFloat32Array()
+		arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
+		#arrays[Mesh.ARRAY_COLOR] = PackedColorArray()
+		for face in data.sorted_faces[texturenames[n]]:
 			for i in face.indices:
 				arrays[Mesh.ARRAY_VERTEX].append(
 					_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor
 					)
-				arrays[Mesh.ARRAY_NORMAL].append(face.normals[i])
+				arrays[Mesh.ARRAY_NORMAL].append(_convert_coordinates(face.normals[i]))
 				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4])
 				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 1])
 				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 2])
@@ -441,10 +443,9 @@ func _generate_meshes(index: int) -> void:
 				arrays[Mesh.ARRAY_TEX_UV].append(
 					_get_tex_uv(face, face.vertices[i])
 					)
-			data.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-			var surface_index: int = data.mesh.get_surface_count() - 1
-			data.mesh.surface_set_material(surface_index, _materials[face.texture])
-			data.mesh.surface_set_name(surface_index, face.texture)
+		data.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		data.mesh.surface_set_material(n, _materials[texturenames[n]])
+		data.mesh.surface_set_name(n, texturenames[n])
 
 func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 	var tex_uv := Vector2.ONE
