@@ -78,6 +78,7 @@ func load_map() -> Error:
 	if verbose: print("Generating map '%s'..."%map.resource_path)
 	progress.emit(0)
 	if verbose: print("\t-Initializing...")
+	clear_children()
 	_create_texture_map()
 	_create_entity_maps()
 	_wads = settings.extra_wads
@@ -121,6 +122,10 @@ func load_map() -> Error:
 	if verbose: print("Finished generating map in %sms"%(Time.get_ticks_msec() - start_time))
 	progress.emit(1)
 	return OK
+
+## Clears all children node for reloading map
+func clear_children() -> void:
+	for child in get_children(): child.queue_free()
 
 ## Fill [member _materials]
 func _create_texture_map() -> void:
