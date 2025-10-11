@@ -39,8 +39,11 @@ signal progress(percentage: float)
 @export var auto_load_map: bool = true
 ## When true will load any [WAD] listed in [QMap] properties under the key "wads"
 @export var auto_load_internal_wads: bool = true
+@export_group("Debug Settings")
 ## When true will print debug info while map loads
 @export var verbose: bool = true
+## Will render non-rendered (skip/clip/trigger/etc...) textures
+@export var show_non_rendered_textures: bool = false
 
 var _current_wad_paths: PackedStringArray
 var _wads: Array[WAD]
@@ -176,7 +179,7 @@ func _generate_materials(index: int) -> void:
 	var texturename: StringName = _materials.keys()[index]
 	for texture in settings.empty_textures:
 		if texturename.to_lower() == texture.to_lower(): return
-	for texture in settings.non_rendered_textures:
+	if !show_non_rendered_textures: for texture in settings.non_rendered_textures:
 		if texturename.to_lower() == texture.to_lower(): return
 	var texture_filename: String = texturename.to_lower().validate_filename() # Filesystem safe name
 	var texture_wad_name: String = texturename.to_lower() # Wad safe name
@@ -448,7 +451,7 @@ func _generate_meshes(index: int) -> void:
 		data.mesh.surface_set_material(n, _materials[texturenames[n]])
 		data.mesh.surface_set_name(n, texturenames[n])
 	var surfaces_to_remove := PackedInt32Array()
-	for n in data.mesh.get_surface_count():
+	if !show_non_rendered_textures: for n in data.mesh.get_surface_count():
 		for texture in settings.non_rendered_textures:
 			if data.mesh.surface_get_name(n).to_lower() == texture.to_lower():
 				surfaces_to_remove.append(n)
