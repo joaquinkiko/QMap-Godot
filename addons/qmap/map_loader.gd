@@ -67,6 +67,25 @@ func _thread_group_task(task: Callable, elements: int, task_debug: String) -> vo
 	WorkerThreadPool.wait_for_group_task_completion(task_id)
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 
+func _thread_individual_taks(tasks: Array[Callable], task_debug: String) -> void:
+	if verbose: print("\t-%s..."%task_debug)
+	var interval_time := Time.get_ticks_msec()
+	var task_ids: PackedInt32Array
+	task_ids.resize(tasks.size())
+	for n in tasks.size():
+		task_ids[n] = WorkerThreadPool.add_task(tasks[n], false, "%s (%s)"%[task_debug, n])
+	if !pause_main_thread_while_loading:
+		var is_completed: bool
+		while !is_completed:
+			is_completed = true
+			for n in task_ids:
+				if !WorkerThreadPool.is_task_completed(n):
+					is_completed = false
+					break
+			await get_tree().process_frame
+	for n in task_ids: WorkerThreadPool.wait_for_task_completion(n)
+	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
+
 ## Convert YZX coordinates to XYZ coordinates
 func _convert_coordinates(vector: Vector3) -> Vector3:
 	return Vector3(vector.y, vector.z, vector.x)
@@ -81,15 +100,12 @@ func load_map() -> Error:
 	var start_time := Time.get_ticks_msec()
 	if verbose: print("Generating map '%s'..."%map.resource_path)
 	progress.emit(0, "Initializing")
-	if verbose: print("\t-Initializing...")
 	clear_children()
-	_create_texture_map()
-	_create_entity_maps()
-	_wads = settings.extra_wads
-	for wad in settings.extra_wads:
-		if verbose: print("\t\t-Including WAD: %s"%wad.resource_path)
-		_current_wad_paths.append(wad.resource_path)
-	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - start_time))
+	await _thread_individual_taks([
+		_create_texture_map,
+		_create_entity_maps,
+		_include_preloaded_wads],
+		"Initializing")
 	progress.emit(0.1, "Loading wads")
 	await _thread_group_task(_load_wads, map.wad_paths.size(), "Loading wads")
 	progress.emit(0.4, "Generating materials")
@@ -171,7 +187,14 @@ func _create_entity_maps() -> void:
 			_solid_data[entity] = data
 		else: _solid_data[entity] = null
 
-## Fill [member _wads]
+## Fill [member _wads] with preloaded wads
+func _include_preloaded_wads() -> void:
+	_wads = settings.extra_wads
+	for wad in settings.extra_wads:
+		if verbose: print("\t\t-Including WAD: %s"%wad.resource_path)
+		_current_wad_paths.append(wad.resource_path)
+
+## Fill [member _wads] with map specific wads
 func _load_wads(index: int) -> void:
 	for base_path in settings.paths_wads:
 		if _current_wad_paths.has("%s/%s"%[base_path, map.wad_paths[index]]): continue
