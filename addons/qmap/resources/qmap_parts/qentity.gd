@@ -121,6 +121,9 @@ var mods: PackedStringArray:
 ## Property "_phong"
 var phong: bool:
 	get: return bool(properties.get(&"_phong", "0").to_int())
+## Property "_phong_angle"
+var phong_angle: float:
+	get: return properties.get(&"_phong_angle", "89.0").to_float()
 ## Array of brushes
 var brushes: Array[Brush]
 

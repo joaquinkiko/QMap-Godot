@@ -411,12 +411,16 @@ func _smooth_normals(index: int) -> void:
 		var intersection: PackedInt32Array
 		intersection.resize(face.normals.size())
 		intersection.fill(1)
+		var normals: PackedVector3Array = face.normals.duplicate()
 		for n in face.vertices.size(): if other_face.vertices.has(face.vertices[n]):
-			face.normals[n] += other_face.plane.normal
+			if normals[n].angle_to(other_face.plane.normal) > deg_to_rad(entity.phong_angle):
+				continue
+			normals[n] += other_face.plane.normal
 			intersection[n] += 1
 			break
-		for n in face.normals.size():
-			face.normals[n] /= intersection[n]
+		for n in normals.size():
+			normals[n] /= intersection[n]
+		face.normals = normals
 
 func _sort_brushes(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
