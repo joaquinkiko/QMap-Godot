@@ -24,7 +24,8 @@ class SolidData extends RefCounted:
 		var texture: StringName
 	var brushes: Array[BrushData]
 	var origin: Vector3
-	var mesh: ArrayMesh
+	var render_mesh: ArrayMesh
+	var collision_mesh: ArrayMesh
 	var sorted_faces: Dictionary[StringName, Array]
 
 ## Emitted at map loading stages (value from 0.0-1.0)
@@ -437,40 +438,65 @@ func _generate_meshes(index: int) -> void:
 	if data == null: return
 	var arrays: Array
 	arrays.resize(Mesh.ARRAY_MAX)
-	data.mesh = ArrayMesh.new()
+	var arrays_collision: Array
+	var arrays_shadow: Array
+	arrays_collision.resize(Mesh.ARRAY_MAX)
+	arrays_shadow.resize(Mesh.ARRAY_MAX)
+	data.render_mesh = ArrayMesh.new()
+	data.collision_mesh = ArrayMesh.new()
+	var shadow_mesh = ArrayMesh.new()
+	arrays_collision[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+	arrays_shadow[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 	var texturenames: Array[StringName] = data.sorted_faces.keys()
 	texturenames.sort()
-	for n in texturenames.size():
-		if n == RenderingServer.MAX_MESH_SURFACES:
-			printerr("Max surfaces exceeded on %s!"%entity.classname)
-			break
-		arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
-		arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
-		arrays[Mesh.ARRAY_TANGENT] = PackedFloat32Array()
-		arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
-		#arrays[Mesh.ARRAY_COLOR] = PackedColorArray()
-		for face in data.sorted_faces[texturenames[n]]:
+	for texture in texturenames:
+		if _is_render_texture(texture):
+			var render_surface := data.render_mesh.get_surface_count()
+			if render_surface == RenderingServer.MAX_MESH_SURFACES:
+				printerr("Cannot render additional mesh surfaces on %s!"%entity.classname)
+				continue
+			arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+			arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
+			arrays[Mesh.ARRAY_TANGENT] = PackedFloat32Array()
+			arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
+			#arrays[Mesh.ARRAY_COLOR] = PackedColorArray()
+			for face in data.sorted_faces[texture]:
+				for i in face.indices:
+					arrays[Mesh.ARRAY_VERTEX].append(
+						_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor
+						)
+					arrays[Mesh.ARRAY_NORMAL].append(_convert_coordinates(face.normals[i]))
+					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4])
+					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 1])
+					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 2])
+					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 3])
+					arrays[Mesh.ARRAY_TEX_UV].append(_get_tex_uv(face, face.vertices[i]))
+			if arrays[Mesh.ARRAY_VERTEX].size() > 0:
+				data.render_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+				data.render_mesh.surface_set_material(render_surface, _materials[texture])
+				data.render_mesh.surface_set_name(render_surface, texture)
+				arrays_shadow[Mesh.ARRAY_VERTEX] = arrays[Mesh.ARRAY_VERTEX]
+				shadow_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays_shadow)
+		for face in data.sorted_faces[texture]:
 			for i in face.indices:
-				arrays[Mesh.ARRAY_VERTEX].append(
+				arrays_collision[Mesh.ARRAY_VERTEX].append(
 					_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor
 					)
-				arrays[Mesh.ARRAY_NORMAL].append(_convert_coordinates(face.normals[i]))
-				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4])
-				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 1])
-				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 2])
-				arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 3])
-				arrays[Mesh.ARRAY_TEX_UV].append(
-					_get_tex_uv(face, face.vertices[i])
-					)
-		data.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		data.mesh.surface_set_material(n, _materials[texturenames[n]])
-		data.mesh.surface_set_name(n, texturenames[n])
-	var surfaces_to_remove := PackedInt32Array()
-	if !show_non_rendered_textures: for n in data.mesh.get_surface_count():
-		for texture in settings.non_rendered_textures:
-			if data.mesh.surface_get_name(n).to_lower() == texture.to_lower():
-				surfaces_to_remove.append(n)
-	for n in surfaces_to_remove: data.mesh.surface_remove(n)
+	if arrays_collision[Mesh.ARRAY_VERTEX].size() > 0:
+		data.collision_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays_collision)
+	else:
+		data.collision_mesh = null
+	if data.render_mesh.get_surface_count() > 0:
+		data.render_mesh.shadow_mesh = shadow_mesh
+	else:
+		data.render_mesh = null
+
+## Returns true if texture should be rendered
+func _is_render_texture(texture: StringName) -> bool:
+	if show_non_rendered_textures: return true
+	for non_render_texture in settings.non_rendered_textures:
+		if texture.to_lower() == non_render_texture.to_lower(): return false
+	return true
 
 func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 	var tex_uv := Vector2.ONE
@@ -526,7 +552,12 @@ func _pass_to_scene_tree() -> void:
 			node.call(&"_apply_map_properties", parsed_properties)
 		# Add mesh
 		if data != null:
-			var mesh_instance := MeshInstance3D.new()
-			mesh_instance.mesh = data.mesh
-			_entities[entity].add_child(mesh_instance)
+			if data.render_mesh != null:
+				var mesh_instance := MeshInstance3D.new()
+				mesh_instance.mesh = data.render_mesh
+				_entities[entity].add_child(mesh_instance)
+			if data.collision_mesh != null:
+				var collision_instance := CollisionShape3D.new()
+				collision_instance.shape = data.collision_mesh.create_trimesh_shape()
+				_entities[entity].add_child(collision_instance)
 		add_child(node, true)
