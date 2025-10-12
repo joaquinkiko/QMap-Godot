@@ -133,6 +133,13 @@ func load_map() -> Error:
 	var interval_time := Time.get_ticks_msec()
 	_pass_to_scene_tree()
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
+	if settings.unwrap_uvs:
+		if verbose: print("\t-Unwrapping UVs...")
+		interval_time = Time.get_ticks_msec()
+		progress.emit(0.97, "Unwrapping UVs")
+		for n in _solid_data.size():
+			_unwrap_uvs(n)
+		if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 	progress.emit(0.99, "Cleaning-up")
 	_current_wad_paths.clear()
 	_wads.clear()
@@ -506,6 +513,13 @@ func _generate_meshes(index: int) -> void:
 		data.occluder.set_arrays(occluder_vertices, occluder_indices)
 	else:
 		data.occluder == null
+
+## Unrwaps render mesh UV for lightmapping
+func _unwrap_uvs(index: int) -> void:
+	var entity: QEntity = _solid_data.keys()[index]
+	var data: SolidData = _solid_data[entity]
+	if data == null || data.render_mesh == null: return
+	data.render_mesh.lightmap_unwrap(Transform3D.IDENTITY, 1.0 / settings.uv_unwrap_texel_ratio)
 
 ## Returns true if texture should be rendered
 func _is_render_texture(texture: StringName) -> bool:

@@ -7,6 +7,8 @@ class_name QMapSettings extends Resource
 @export_range(1, 256, 1) var scaling: int = 32
 ## Ratio for UV unwrapping
 @export_range(1, 256, 1) var uv_unwrap_texel_ratio: int = 16
+## If true will unwrap mesh UVs for lightmapping
+@export var unwrap_uvs: bool = true
 @export_group("Special Textures")
 ## This texture will be used to identify orign brushes
 @export var texture_origin: StringName = "origin"
