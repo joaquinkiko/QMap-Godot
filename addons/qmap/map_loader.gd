@@ -592,7 +592,10 @@ func _pass_to_scene_tree() -> void:
 				_entities[entity].add_child(mesh_instance)
 			if data.collision_mesh != null:
 				var collision_instance := CollisionShape3D.new()
-				collision_instance.shape = data.collision_mesh.create_trimesh_shape()
+				if data.brushes.size() > 1:
+					collision_instance.shape = data.collision_mesh.create_trimesh_shape()
+				else:
+					collision_instance.shape = data.collision_mesh.create_convex_shape()
 				_entities[entity].add_child(collision_instance)
 			if data.occluder != null:
 				var occluder_instance := OccluderInstance3D.new()
