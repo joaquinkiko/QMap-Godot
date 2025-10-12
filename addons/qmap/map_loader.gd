@@ -26,6 +26,7 @@ class SolidData extends RefCounted:
 	var origin: Vector3
 	var render_mesh: ArrayMesh
 	var collision_mesh: ArrayMesh
+	var occluder: ArrayOccluder3D
 	var sorted_faces: Dictionary[StringName, Array]
 
 ## Emitted at map loading stages (value from 0.0-1.0)
@@ -435,6 +436,7 @@ func _sort_faces(index: int) -> void:
 func _generate_meshes(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
 	var data: SolidData = _solid_data[entity]
+	var use_occlusion_culling: bool = ProjectSettings.get_setting("rendering/occlusion_culling/use_occlusion_culling", false)
 	if data == null: return
 	var arrays: Array
 	arrays.resize(Mesh.ARRAY_MAX)
@@ -445,6 +447,8 @@ func _generate_meshes(index: int) -> void:
 	data.render_mesh = ArrayMesh.new()
 	data.collision_mesh = ArrayMesh.new()
 	var shadow_mesh = ArrayMesh.new()
+	var occluder_vertices: PackedVector3Array
+	var occluder_indices: PackedInt32Array
 	arrays_collision[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 	arrays_shadow[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 	var texturenames: Array[StringName] = data.sorted_faces.keys()
@@ -471,6 +475,13 @@ func _generate_meshes(index: int) -> void:
 					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 2])
 					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 3])
 					arrays[Mesh.ARRAY_TEX_UV].append(_get_tex_uv(face, face.vertices[i]))
+					if use_occlusion_culling:
+						var vertex: Vector3 = arrays[Mesh.ARRAY_VERTEX][arrays[Mesh.ARRAY_VERTEX].size() - 1]
+						var occluder_index := occluder_vertices.find(vertex)
+						if occluder_index == -1:
+							occluder_index = occluder_vertices.size()
+							occluder_vertices.append(vertex)
+						occluder_indices.append(occluder_index)
 			if arrays[Mesh.ARRAY_VERTEX].size() > 0:
 				data.render_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 				data.render_mesh.surface_set_material(render_surface, _materials[texture])
@@ -490,6 +501,11 @@ func _generate_meshes(index: int) -> void:
 		data.render_mesh.shadow_mesh = shadow_mesh
 	else:
 		data.render_mesh = null
+	if use_occlusion_culling && occluder_vertices.size() > 0:
+		data.occluder = ArrayOccluder3D.new()
+		data.occluder.set_arrays(occluder_vertices, occluder_indices)
+	else:
+		data.occluder == null
 
 ## Returns true if texture should be rendered
 func _is_render_texture(texture: StringName) -> bool:
@@ -560,4 +576,8 @@ func _pass_to_scene_tree() -> void:
 				var collision_instance := CollisionShape3D.new()
 				collision_instance.shape = data.collision_mesh.create_trimesh_shape()
 				_entities[entity].add_child(collision_instance)
+			if data.occluder != null:
+				var occluder_instance := OccluderInstance3D.new()
+				occluder_instance.occluder = data.occluder
+				_entities[entity].add_child(occluder_instance)
 		add_child(node, true)
