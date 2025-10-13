@@ -254,12 +254,11 @@ func _generate_materials(index: int) -> void:
 ## Generate nodes for entities
 func _generate_entities(index: int) -> void:
 	var entity: QEntity = _entities.keys()[index]
-	if false: if !settings.fgd.classes.has(entity.classname):
+	if !settings.fgd.classes.has(entity.classname):
 		if entity.brushes.size() > 0:
 			_entities[entity] = StaticBody3D.new()
 		else:
 			_entities[entity] = Node.new()
-		_get_target_destinations(entity, _entities[entity])
 		return
 	for path in settings.paths_scenes: for extension in ["tscn","scn"]:
 		if ResourceLoader.exists("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension]):
