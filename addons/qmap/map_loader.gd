@@ -9,6 +9,7 @@ class SolidData extends RefCounted:
 		var faces: Array[FaceData]
 		var planes: Array[Plane]
 		var is_origin: bool
+		var is_trigger: bool
 	class FaceData extends RefCounted:
 		var plane: Plane
 		var uv: Transform2D
@@ -22,10 +23,12 @@ class SolidData extends RefCounted:
 		var uvs: PackedVector2Array
 		var indices: PackedInt32Array
 		var texture: StringName
+		var is_trigger: bool
 	var brushes: Array[BrushData]
 	var origin: Vector3
 	var render_mesh: ArrayMesh
 	var collision_mesh: ArrayMesh
+	var convex_meshes: Array[ArrayMesh]
 	var occluder: ArrayOccluder3D
 	var sorted_faces: Dictionary[StringName, Array]
 
@@ -176,11 +179,14 @@ func _create_entity_maps() -> void:
 			for brush in entity.brushes:
 				var brush_data := SolidData.BrushData.new()
 				brush_data.is_origin = true
+				brush_data.is_trigger = true
 				brush_data.planes = brush.planes
 				for face in brush.faces:
 					var face_data := SolidData.FaceData.new()
 					face_data.texture = face.texturename
 					if face.texturename.to_lower() != settings.texture_origin.to_lower(): brush_data.is_origin = false
+					for trigger_texture in settings.convex_trigger_textures:
+						if face.texturename.to_lower() != trigger_texture.to_lower(): brush_data.is_trigger = false
 					face_data.plane = face.plane
 					face_data.uv = face.uv
 					face_data.uv_format = face.format
@@ -192,6 +198,7 @@ func _create_entity_maps() -> void:
 							face.v_offset.x, face.v_offset.y, face.v_offset.z
 						).normalized()
 					brush_data.faces.append(face_data)
+				for face_data in brush_data.faces: face_data.is_trigger = brush_data.is_trigger
 				data.brushes.append(brush_data)
 			_solid_data[entity] = data
 		else: _solid_data[entity] = null
@@ -500,6 +507,7 @@ func _generate_meshes(index: int) -> void:
 				arrays_shadow[Mesh.ARRAY_VERTEX] = arrays[Mesh.ARRAY_VERTEX]
 				shadow_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays_shadow)
 		for face in data.sorted_faces[texture]:
+			if face.is_trigger: continue
 			for i in face.indices:
 				arrays_collision[Mesh.ARRAY_VERTEX].append(
 					_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor
@@ -517,6 +525,21 @@ func _generate_meshes(index: int) -> void:
 		data.occluder.set_arrays(occluder_vertices, occluder_indices)
 	else:
 		data.occluder == null
+	# Generate convex trigger meshes
+	for brush in data.brushes:
+		if !brush.is_trigger: continue
+		var convex_mesh := ArrayMesh.new()
+		var convex_arrays: Array
+		convex_arrays.resize(Mesh.ARRAY_MAX)
+		convex_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+		for face in brush.faces:
+			for i in face.indices:
+				convex_arrays[Mesh.ARRAY_VERTEX].append(
+					_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor
+					)
+		if convex_arrays[Mesh.ARRAY_VERTEX].size() > 0:
+			convex_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, convex_arrays)
+			data.convex_meshes.append(convex_mesh)
 
 ## Unrwaps render mesh UV for lightmapping
 func _unwrap_uvs(index: int) -> void:
@@ -597,6 +620,11 @@ func _pass_to_scene_tree() -> void:
 				else:
 					collision_instance.shape = data.collision_mesh.create_convex_shape()
 				_entities[entity].add_child(collision_instance)
+			if data.convex_meshes.size() > 0:
+				for convex_mesh in data.convex_meshes:
+					var collision_instance := CollisionShape3D.new()
+					collision_instance.shape = convex_mesh.create_convex_shape()
+					_entities[entity].add_child(collision_instance)
 			if data.occluder != null:
 				var occluder_instance := OccluderInstance3D.new()
 				occluder_instance.occluder = data.occluder

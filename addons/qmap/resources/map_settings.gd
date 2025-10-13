@@ -14,6 +14,11 @@ class_name QMapSettings extends Resource
 @export var texture_origin: StringName = "origin"
 ## These textures will not be rendered
 @export var non_rendered_textures: Array[StringName] = ["clip", "skip", "trigger", "hint", "null"]
+## Brushes textured with these will use seperate convex collision meshes.
+##
+## This is mainly for creating collisions for [CollisionShape3D] for Triggers
+## where typical concave collision generation can cause issues.
+@export var convex_trigger_textures: Array[StringName] = ["trigger"]
 ## These textures will just use the default placeholder
 @export var empty_textures: Array[StringName] = ["__tb_empty"]
 @export_group("Texture Settings")
