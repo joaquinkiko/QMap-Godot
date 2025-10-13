@@ -293,7 +293,7 @@ func _generate_solid_data(index: int) -> void:
 		# Find vertices
 		for face in brush.faces:
 			for vertex in vertices:
-				if face.plane.has_point(vertex):
+				if face.plane.has_point(vertex, 1e-04):
 					face.vertices.append(vertex)
 			# Sort vertices
 			if face.vertices.size() < 3: continue
