@@ -55,10 +55,12 @@ signal progress(percentage: float, task: String)
 var _current_wad_paths: PackedStringArray
 var _wads: Array[WAD]
 var _materials: Dictionary[StringName, Material]
+var _textures: Dictionary[StringName, Texture2D]
 var _texture_sizes: Dictionary[StringName, Vector2]
 var _entities: Dictionary[QEntity, Node]
 var _solid_data: Dictionary[QEntity, SolidData]
 var _target_destinations: Dictionary[StringName, Node]
+var _alphatests: Dictionary[StringName, bool]
 
 func _ready() -> void:
 	if auto_load_map: load_map()
@@ -115,6 +117,12 @@ func load_map() -> Error:
 	await _thread_group_task(_load_wads, map.wad_paths.size(), "Loading wads")
 	progress.emit(0.4, "Generating materials")
 	await _thread_group_task(_generate_materials, _materials.size(), "Generating materials")
+	if verbose: print("\t-Detecting Alphatest materials...")
+	var interval_time := Time.get_ticks_msec()
+	progress.emit(0.48, "Detecting Alphatest materials")
+	for n in _textures.size():
+		_detect_alphatest(n)
+	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 	progress.emit(0.50, "Generating entities")
 	await _thread_group_task(_generate_entities, _entities.size(), "Generating entities")
 	progress.emit(0.55, "Generating Solid Data")
@@ -133,7 +141,7 @@ func load_map() -> Error:
 	await _thread_group_task(_generate_meshes, _solid_data.size(), "Generating meshes")
 	progress.emit(0.95, "Spawning entities")
 	if verbose: print("\t-Spawning entities...")
-	var interval_time := Time.get_ticks_msec()
+	interval_time = Time.get_ticks_msec()
 	_pass_to_scene_tree()
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 	if settings.unwrap_uvs:
@@ -147,9 +155,11 @@ func load_map() -> Error:
 	_current_wad_paths.clear()
 	_wads.clear()
 	_materials.clear()
+	_textures.clear()
 	_texture_sizes.clear()
 	_entities.clear()
 	_solid_data.clear()
+	_alphatests.clear()
 	_target_destinations.clear()
 	if verbose: print("Finished generating map in %sms"%(Time.get_ticks_msec() - start_time))
 	progress.emit(1, "Finished")
@@ -164,7 +174,9 @@ func _create_texture_map() -> void:
 	var placeholder := PlaceholderMaterial.new()
 	for texturename in map.texturenames:
 		_materials[texturename] = placeholder
+		_textures[texturename] = null
 		_texture_sizes[texturename] = Vector2.ONE * settings.scaling
+		_alphatests[texturename] = false
 
 ## Fill [member _entities] and [member _solid_data]
 func _create_entity_maps() -> void:
@@ -248,8 +260,23 @@ func _generate_materials(index: int) -> void:
 		texture = wad.textures[texture_wad_name]
 	if texture != null:
 		material.set(settings.default_material_texture_path, texture)
+		_textures[texturename] = texture
 		_texture_sizes[texturename] = texture.get_size()
 	_materials[texturename] = material
+
+## Detect Alphatest textures in [member _materials] (not thread safe)
+func _detect_alphatest(index: int) -> void:
+	var texturename: StringName = _textures.keys()[index]
+	var texture: Texture2D = _textures[texturename]
+	if texture == null: return
+	var image := texture.get_image()
+	for x in image.get_width(): for y in image.get_height():
+		if image.get_pixel(x, y).a < 1:
+			_alphatests[texturename] = true
+			var material := _materials[texturename]
+			if material != null:
+				material.set(settings.default_material_transparency_path, settings.transparency_alphatest_value)
+			return
 
 ## Generate nodes for entities
 func _generate_entities(index: int) -> void:
@@ -492,7 +519,7 @@ func _generate_meshes(index: int) -> void:
 					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 2])
 					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 3])
 					arrays[Mesh.ARRAY_TEX_UV].append(_get_tex_uv(face, face.vertices[i]))
-					if use_occlusion_culling:
+					if use_occlusion_culling && !_alphatests.get(texture, false):
 						var vertex: Vector3 = arrays[Mesh.ARRAY_VERTEX][arrays[Mesh.ARRAY_VERTEX].size() - 1]
 						var occluder_index := occluder_vertices.find(vertex)
 						if occluder_index == -1:

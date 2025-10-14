@@ -49,6 +49,11 @@ class_name QMapSettings extends Resource
 @export var default_material: Material
 ## Path to apply texture for [member default_material]
 @export var default_material_texture_path: String = "albedo_texture"
+## Path to apply transparency setting for [member default_material]
+@export var default_material_transparency_path: String = "transparency"
+## Value to apply to [member default_material_transparency_path] for Alphatest textures
+## (Defaults to [member BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR])
+@export var transparency_alphatest_value: int = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 
 ## Base paths (including mods)
 func get_paths_base(mods := PackedStringArray([])) -> PackedStringArray:
