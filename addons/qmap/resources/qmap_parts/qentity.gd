@@ -145,6 +145,9 @@ var phong: bool:
 ## Property "_phong_angle"
 var phong_angle: float:
 	get: return properties.get(&"_phong_angle", "89.0").to_float()
+## Property "_geo_flags"
+var geometry_flags: int:
+	get: return properties.get(&"_geo_flags", GEOMETRY_FLAG_DEFAULT).to_int()
 ## Array of brushes
 var brushes: Array[Brush]
 
