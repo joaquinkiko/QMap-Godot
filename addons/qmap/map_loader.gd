@@ -251,25 +251,25 @@ func _generate_materials(index: int) -> void:
 		_textures[texturename] = texture
 		_texture_sizes[texturename] = texture.get_size()
 	## Generate PBR (Will not generate for animated textures)
-	if settings.use_pbr && not texture is AnimatedTexture:
+	if settings.use_pbr:
 		var pbr_texture: Texture2D
-		pbr_texture = _find_texture("%s%s"%[texturename, settings.suffix_normal])
+		pbr_texture = _find_texture_or_animated("%s%s"%[texturename, settings.suffix_normal])
 		if pbr_texture != null:
 			material.set("normal_enabled", true)
 			material.set("normal_texture", pbr_texture)
-		var normal_texture := _find_texture("%s%s"%[texturename, settings.suffix_metallic])
+		var normal_texture := _find_texture_or_animated("%s%s"%[texturename, settings.suffix_metallic])
 		if pbr_texture != null: material.set("metallic_texture", pbr_texture)
-		pbr_texture = _find_texture("%s%s"%[texturename, settings.suffix_roughness])
+		pbr_texture = _find_te_find_texture_or_animatedxture("%s%s"%[texturename, settings.suffix_roughness])
 		if pbr_texture != null: material.set("roughness_texture", pbr_texture)
-		pbr_texture = _find_texture("%s%s"%[texturename, settings.suffix_emission])
+		pbr_texture = _find_texture_or_animated("%s%s"%[texturename, settings.suffix_emission])
 		if pbr_texture != null:
 			material.set("emission_enabled", true)
 			material.set("emission_texture", pbr_texture)
-		pbr_texture = _find_texture("%s%s"%[texturename, settings.suffix_ao])
+		pbr_texture = _find_texture_or_animated("%s%s"%[texturename, settings.suffix_ao])
 		if pbr_texture != null:
 			material.set("ao_enabled", true)
 			material.set("ao_texture", pbr_texture)
-		pbr_texture = _find_texture("%s%s"%[texturename, settings.suffix_height])
+		pbr_texture = _find_texture_or_animated("%s%s"%[texturename, settings.suffix_height])
 		if pbr_texture != null:
 			material.set("heightmap_enabled", true)
 			material.set("heightmap_texture", pbr_texture)
