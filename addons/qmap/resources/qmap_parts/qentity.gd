@@ -185,8 +185,10 @@ func get_parsed_properties(settings: QMapSettings, mods := PackedStringArray([])
 				var nums: PackedFloat64Array
 				for num in raw_value.split(" ", false):
 					nums.append(num.to_float())
-				if nums.size() >= 3: value = Vector3(nums[0], nums[1], nums[2])
-				else: value = Vector3.ZERO
+				if nums.size() >= 4: value = Vector4(nums[0], nums[1], nums[2], nums[3])
+				elif nums.size() >= 3: value = Vector3(nums[0], nums[1], nums[2])
+				elif nums.size() >= 2: value = Vector2(nums[0], nums[1])
+				else: value = Vector3.ONE * raw_value.to_float()
 			FGDEntityProperty.PropertyType.COLOR_255: 
 				var nums: PackedFloat64Array
 				for num in raw_value.split(" ", false):
