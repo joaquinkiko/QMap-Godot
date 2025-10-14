@@ -61,6 +61,21 @@ class_name QMapSettings extends Resource
 ## Default speed scale for animated texture playback
 ## (by default will loop through textures once per second)
 @export var animated_texture_speed_scale: float = 1.0
+@export_group("PBR textures")
+## Whether to search for pbr textures
+@export var use_pbr: bool = true
+## Texture suffix for normal map
+@export var suffix_normal: String = "_normal"
+## Texture suffix for metallic map
+@export var suffix_metallic: String = "_metallic"
+## Texture suffix for roughness map
+@export var suffix_roughness: String = "_roughness"
+## Texture suffix for emission map
+@export var suffix_emission: String = "_emission"
+## Texture suffix for ao map
+@export var suffix_ao: String = "_ao"
+## Texture suffix for height map
+@export var suffix_height: String = "_height"
 
 ## Base paths (including mods)
 func get_paths_base(mods := PackedStringArray([])) -> PackedStringArray:
