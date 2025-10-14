@@ -139,19 +139,19 @@ func is_solid(fgd: FGD) -> bool:
 
 ## Returns dictionary of properties (both defined, and default values)
 ## parsed into their correct [Variant] types as defined by [param fgd]
-func get_parsed_properties(fgd: FGD, settings: QMapSettings) -> Dictionary[StringName, Variant]:
-	var fgd_class: FGDClass = fgd.classes.get(classname)
+func get_parsed_properties(settings: QMapSettings, mods := PackedStringArray([])) -> Dictionary[StringName, Variant]:
+	var fgd_class: FGDClass = settings.fgd.classes.get(classname)
 	if fgd_class == null: return properties
 	var parsed_properties: Dictionary[StringName, Variant]
 	var to_parse: Dictionary[StringName, String]
 	for base in fgd_class.base_classes:
-		if !fgd.classes.has(base): continue
-		fgd.classes[base]
-		for key in fgd.classes[base].properties.keys():
-			to_parse.set(key, fgd.classes[base].properties[key].default_value)
-			if fgd.classes[base].properties[key].type == FGDEntityProperty.PropertyType.FLAGS:
+		if !settings.fgd.classes.has(base): continue
+		settings.fgd.classes[base]
+		for key in settings.fgd.classes[base].properties.keys():
+			to_parse.set(key, settings.fgd.classes[base].properties[key].default_value)
+			if settings.fgd.classes[base].properties[key].type == FGDEntityProperty.PropertyType.FLAGS:
 				var default_value: int
-				for flag in fgd.classes[base].properties[key].default_flags:
+				for flag in settings.fgd.classes[base].properties[key].default_flags:
 					default_value += flag
 				to_parse.set(key, "%s"%default_value)
 	for key in fgd_class.properties.keys():
@@ -201,25 +201,25 @@ func get_parsed_properties(fgd: FGD, settings: QMapSettings) -> Dictionary[Strin
 				else: value = Color(0,0,0)
 			FGDEntityProperty.PropertyType.DECAL:
 				value = null
-				for texture_path in settings.paths_textures:
+				for texture_path in settings.get_paths_decals(mods):
 					if ResourceLoader.exists("%s/%s"%[texture_path, raw_value]):
 						value = ResourceLoader.load("%s/%s"%[texture_path, raw_value])
 						break
 			FGDEntityProperty.PropertyType.STUDIO:
 				value = null
-				for model_path in settings.paths_textures:
+				for model_path in settings.get_paths_models(mods):
 					if ResourceLoader.exists("%s/%s"%[model_path, raw_value]):
 						value = ResourceLoader.load("%s/%s"%[model_path, raw_value])
 						break
 			FGDEntityProperty.PropertyType.SPRITE:
 				value = null
-				for texture_path in settings.paths_textures:
+				for texture_path in settings.get_paths_decals(mods):
 					if ResourceLoader.exists("%s/%s"%[texture_path, raw_value]):
 						value = ResourceLoader.load("%s/%s"%[texture_path, raw_value])
 						break
 			FGDEntityProperty.PropertyType.SOUND:
 				value = null
-				for audio_path in settings.paths_textures:
+				for audio_path in settings.get_paths_sounds(mods):
 					if ResourceLoader.exists("%s/%s"%[audio_path, raw_value]):
 						value = ResourceLoader.load("%s/%s"%[audio_path, raw_value])
 						break

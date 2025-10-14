@@ -212,7 +212,7 @@ func _include_preloaded_wads() -> void:
 
 ## Fill [member _wads] with map specific wads
 func _load_wads(index: int) -> void:
-	for base_path in settings.paths_wads:
+	for base_path in settings.get_paths_wads(map.mods):
 		if _current_wad_paths.has("%s/%s"%[base_path, map.wad_paths[index]]): continue
 		if ResourceLoader.exists("%s/%s"%[base_path, map.wad_paths[index]]):
 			if verbose: print("\t\t-Loading WAD: %s"%map.wad_paths[index])
@@ -233,14 +233,14 @@ func _generate_materials(index: int) -> void:
 	var texture_wad_name: String = texturename.to_lower() # Wad safe name
 	var texture: Texture2D
 	var material: Material
-	for path in settings.paths_materials: for extension in settings.material_extensions:
+	for path in settings.get_paths_materials(map.mods): for extension in settings.material_extensions:
 		if ResourceLoader.exists("%s/%s.%s"%[path, texture_filename, extension]):
 			material = ResourceLoader.load("%s/%s.%s"%[path, texture_filename, extension])
 	if material == null:
 		if settings.default_material != null:
 			material = settings.default_material.duplicate()
 		else: material = StandardMaterial3D.new()
-	for path in settings.paths_textures: for extension in settings.texture_extensions:
+	for path in settings.get_paths_textures(map.mods): for extension in settings.texture_extensions:
 		if ResourceLoader.exists("%s/%s.%s"%[path, texture_filename, extension]):
 			texture = ResourceLoader.load("%s/%s.%s"%[path, texture_filename, extension])
 	if texture == null: for wad in _wads:
@@ -260,7 +260,7 @@ func _generate_entities(index: int) -> void:
 		else:
 			_entities[entity] = Node.new()
 		return
-	for path in settings.paths_scenes: for extension in ["tscn","scn"]:
+	for path in settings.get_paths_scenes(map.mods): for extension in ["tscn","scn"]:
 		if ResourceLoader.exists("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension]):
 			var scene: PackedScene = ResourceLoader.load("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension])
 			if scene != null:
@@ -593,7 +593,7 @@ func _pass_to_scene_tree() -> void:
 			node.set(&"rotation_degrees", entity.angle)
 			var current_scale = node.get(&"scale")
 			if current_scale != null: node.set(&"scale", current_scale * entity.scale)
-		var parsed_properties := entity.get_parsed_properties(settings.fgd, settings)
+		var parsed_properties := entity.get_parsed_properties(settings, map.mods)
 		for key in parsed_properties.keys():
 			# Set properties on node if they are present in FGD as well
 			if settings.fgd.classes.has(entity.classname) && settings.fgd.classes[entity.classname].properties.has(key):

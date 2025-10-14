@@ -29,27 +29,87 @@ class_name QMapSettings extends Resource
 ## Valid material extensions to load from
 @export var material_extensions: PackedStringArray = ["tres"]
 @export_group("Resource Paths")
-## Paths sorted by priority to load scenes from
-@export_dir var paths_scenes: PackedStringArray = ["res://"]
-## Paths sorted by priority to load scripts from
-@export_dir var paths_scripts: PackedStringArray = ["res://"]
-## Paths sorted by priority to load textures from
-@export_dir var paths_textures: PackedStringArray = ["res://"]
-## Paths sorted by priority to load materials from
-@export_dir var paths_materials: PackedStringArray = ["res://"]
-## Paths sorted by priority to load shaders from
-@export_dir var paths_shaders: PackedStringArray = ["res://"]
-## Paths sorted by priority to load sounds from
-@export_dir var paths_sounds: PackedStringArray = ["res://"]
-## Paths sorted by priority to load models from
-@export_dir var paths_models: PackedStringArray = ["res://"]
-## Paths sorted by priority to load wads from
-@export_dir var paths_wads: PackedStringArray = ["res://"]
+## Base path relative to res:// for loading resources
+@export var base_path: StringName = &"."
+## Path relative to [base_path] to load textures and Wads
+@export var path_textures: StringName = &"textures"
+## Path relative to [base_path] to decal textures
+@export var path_decals: StringName = &"decals"
+## Path relative to [base_path] to load materials
+@export var path_materials: StringName = &"materials"
+## Path relative to [base_path] to load audio
+@export var path_sounds: StringName = &"sounds"
+## Path relative to [base_path] to load models
+@export var path_models: StringName = &"models"
+## Path relative to [base_path] to load Scenes
+@export var path_scenes: StringName = &"scenes"
+
 @export_group("Default Material")
 ## Default material for new textures
 @export var default_material: Material
 ## Path to apply texture for [member default_material]
 @export var default_material_texture_path: String = "albedo_texture"
+
+## Base paths (including mods)
+func get_paths_base(mods := PackedStringArray([])) -> PackedStringArray:
+	var output: PackedStringArray
+	output.append("res://%s"%[base_path])
+	for mod in mods:
+		output.append("res://%s"%[mod])
+	return output
+
+## Wad paths (including mods)
+func get_paths_wads(mods := PackedStringArray([])) -> PackedStringArray:
+	return get_paths_textures(mods)
+
+## Texture paths (including mods)
+func get_paths_textures(mods := PackedStringArray([])) -> PackedStringArray:
+	var output: PackedStringArray
+	output.append("res://%s/%s"%[base_path, path_textures])
+	for mod in mods:
+		output.append("res://%s/%s"%[mod, path_textures])
+	return output
+
+## Decal  texture paths (including mods)
+func get_paths_decals(mods := PackedStringArray([])) -> PackedStringArray:
+	var output: PackedStringArray
+	output.append("res://%s/%s"%[base_path, path_decals])
+	for mod in mods:
+		output.append("res://%s/%s"%[mod, path_decals])
+	return output
+
+## Material paths (including mods)
+func get_paths_materials(mods := PackedStringArray([])) -> PackedStringArray:
+	var output: PackedStringArray
+	output.append("res://%s/%s"%[base_path, path_materials])
+	for mod in mods:
+		output.append("res://%s/%s"%[mod, path_materials])
+	return output
+
+## Sound paths (including mods)
+func get_paths_sounds(mods := PackedStringArray([])) -> PackedStringArray:
+	var output: PackedStringArray
+	output.append("res://%s/%s"%[base_path, path_sounds])
+	for mod in mods:
+		output.append("res://%s/%s"%[mod, path_sounds])
+	return output
+
+## Model paths (including mods)
+func get_paths_models(mods := PackedStringArray([])) -> PackedStringArray:
+	var output: PackedStringArray
+	output.append("res://%s/%s"%[base_path, path_models])
+	for mod in mods:
+		output.append("res://%s/%s"%[mod, path_models])
+	return output
+
+
+## Scene paths (including mods)
+func get_paths_scenes(mods := PackedStringArray([])) -> PackedStringArray:
+	var output: PackedStringArray
+	output.append("res://%s/%s"%[base_path, path_scenes])
+	for mod in mods:
+		output.append("res://%s/%s"%[mod, path_scenes])
+	return output
 
 var _scale_factor: float:
 	get: return 1.0/float(scaling)
