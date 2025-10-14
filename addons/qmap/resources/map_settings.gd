@@ -54,6 +54,13 @@ class_name QMapSettings extends Resource
 ## Value to apply to [member default_material_transparency_path] for Alphatest textures
 ## (Defaults to [member BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR])
 @export var transparency_alphatest_value: int = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+## Whether to allow [AnimatedTexture] to be generated for certain textures
+@export var allow_animated_textures: bool = true
+## Animated texture prefixes
+@export var animated_texture_prefixes: PackedStringArray = ["+"]
+## Default speed scale for animated texture playback
+## (by default will loop through textures once per second)
+@export var animated_texture_speed_scale: float = 1.0
 
 ## Base paths (including mods)
 func get_paths_base(mods := PackedStringArray([])) -> PackedStringArray:

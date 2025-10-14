@@ -237,32 +237,75 @@ func _load_wads(index: int) -> void:
 ## Create materials for [member _materials]
 func _generate_materials(index: int) -> void:
 	var texturename: StringName = _materials.keys()[index]
+	## Ignore generation if empty or non-rendered texture
 	for texture in settings.empty_textures:
 		if texturename.to_lower() == texture.to_lower(): return
 	if !show_non_rendered_textures: for texture in settings.non_rendered_textures:
 		if texturename.to_lower() == texture.to_lower(): return
-	var texture_filename: String = texturename.to_lower().validate_filename() # Filesystem safe name
-	var texture_wad_name: String = texturename.to_lower() # Wad safe name
-	var texture: Texture2D
-	var material: Material
-	for path in settings.get_paths_materials(map.mods): for extension in settings.material_extensions:
-		if ResourceLoader.exists("%s/%s.%s"%[path, texture_filename, extension]):
-			material = ResourceLoader.load("%s/%s.%s"%[path, texture_filename, extension])
-	if material == null:
-		if settings.default_material != null:
-			material = settings.default_material.duplicate()
-		else: material = StandardMaterial3D.new()
-	for path in settings.get_paths_textures(map.mods): for extension in settings.texture_extensions:
-		if ResourceLoader.exists("%s/%s.%s"%[path, texture_filename, extension]):
-			texture = ResourceLoader.load("%s/%s.%s"%[path, texture_filename, extension])
-	if texture == null: for wad in _wads:
-		if !wad.textures.has(texture_wad_name): continue
-		texture = wad.textures[texture_wad_name]
+	## Find texture and material
+	var texture := _find_texture_or_animated(texturename)
+	var material := _find_material(texturename)
+	## Apply texture to material if not null
 	if texture != null:
 		material.set(settings.default_material_texture_path, texture)
 		_textures[texturename] = texture
 		_texture_sizes[texturename] = texture.get_size()
+	## Set material
 	_materials[texturename] = material
+
+## Find either texture or animated texture
+func _find_texture_or_animated(texturename: StringName) -> Texture2D:
+	var is_animated: bool = false
+	var base_prefix: String
+	var base_num: int
+	if settings.allow_animated_textures:
+		for prefix in settings.animated_texture_prefixes: for num in 10:
+			if texturename.begins_with("%s%s"%[prefix,num]):
+				is_animated = true
+				base_prefix = prefix
+				base_num = num
+				break
+	if is_animated:
+		var animated_texture := AnimatedTexture.new()
+		var textures: Array[Texture2D]
+		for num in 10:
+			var texture := _find_texture("%s%s%s"%[
+				base_prefix,
+				num,
+				texturename.trim_prefix("%s%s"%[base_prefix,base_num])
+			])
+			if texture != null: textures.append(texture)
+		animated_texture.frames = textures.size()
+		if base_num < textures.size(): animated_texture.current_frame = base_num
+		for n in textures.size():
+			animated_texture.set_frame_texture(n, textures[n])
+		animated_texture.speed_scale = textures.size() * settings.animated_texture_speed_scale
+		return animated_texture
+	else: return _find_texture(texturename)
+
+## Find relevant texture
+func _find_texture(texturename: StringName) -> Texture2D:
+	var texture_filename: String = texturename.to_lower().validate_filename() # Filesystem safe name
+	var texture_wad_name: String = texturename.to_lower() # Wad safe name
+	## Search filesystem first
+	for path in settings.get_paths_textures(map.mods): for extension in settings.texture_extensions:
+		if ResourceLoader.exists("%s/%s.%s"%[path, texture_filename, extension]):
+			return ResourceLoader.load("%s/%s.%s"%[path, texture_filename, extension])
+	## Search wads second
+	for wad in _wads:
+		if !wad.textures.has(texture_wad_name): continue
+		return wad.textures[texture_wad_name]
+	return null
+
+## Find relevant material
+func _find_material(texturename: StringName) -> Material:
+	var texture_filename: String = texturename.to_lower().validate_filename() # Filesystem safe name
+	for path in settings.get_paths_materials(map.mods): for extension in settings.material_extensions:
+		if ResourceLoader.exists("%s/%s.%s"%[path, texture_filename, extension]):
+			return ResourceLoader.load("%s/%s.%s"%[path, texture_filename, extension])
+	if settings.default_material != null:
+		return settings.default_material.duplicate()
+	return StandardMaterial3D.new()
 
 ## Detect Alphatest textures in [member _materials] (not thread safe)
 func _detect_alphatest(index: int) -> void:
