@@ -16,17 +16,23 @@ enum GroupingType{
 ## Flags for generating solid geometry
 enum GeometryFlags{
 	## Generate [MeshInstance3D]
-	RENDER = 					0b0001,
+	RENDER = 					0b0000001,
 	## Generate concave [CollisionShape3D] (Prefered for [StaticBody3D])
-	CONCAVE_COLLISIONS = 		0b0010,
+	CONCAVE_COLLISIONS = 		0b0000010,
 	## Generate multiple convex [CollisionShape3D] (Prefered for [Area3D])
 	## (Will take priority over [enum GeometryFlags.CONCAVE_COLLISIONS])
-	CONVEX_COLLISIONS = 		0b0100,
+	CONVEX_COLLISIONS = 		0b0000100,
 	## Generate [OccluderInstance3D]
-	OCCLUSION = 				0b1000,
+	OCCLUSION = 				0b0001000,
+	## Generate [NavigationRegion3D]
+	NAV_REGION = 				0b0010000,
+	## Generate [NavigationObstacle3D]
+	NAV_BLOCKING = 				0b0100000,
+	## Use only for navigation objects that will move. High performance cost
+	NAV_DYNAMIC = 				0b1000000,
 }
 ## Default geometry generation flags (see [enum GeometryFlags])
-const GEOMETRY_FLAG_DEFAULT := 	0b1011
+const GEOMETRY_FLAG_DEFAULT := 	0b0111011
 
 class Brush extends RefCounted:
 	var faces: Array[Face]
