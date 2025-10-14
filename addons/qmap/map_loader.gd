@@ -281,12 +281,22 @@ func _find_texture_or_animated(texturename: StringName) -> Texture2D:
 	var is_animated: bool = false
 	var base_prefix: String
 	var base_num: int
+	var base_char: String
+	var trim: String
 	if settings.allow_animated_textures:
 		for prefix in settings.animated_texture_prefixes: for num in 10:
 			if texturename.begins_with("%s%s"%[prefix,num]):
 				is_animated = true
 				base_prefix = prefix
 				base_num = num
+				trim = "%s%s"%[base_prefix,base_num]
+				break
+		for prefix in settings.animated_texture_prefixes: for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+			if texturename.begins_with("%s%s"%[prefix,num]):
+				is_animated = true
+				base_prefix = prefix
+				base_char = char
+				trim = "%s%s"%[base_prefix,base_char]
 				break
 	if is_animated:
 		var animated_texture := AnimatedTexture.new()
@@ -295,14 +305,33 @@ func _find_texture_or_animated(texturename: StringName) -> Texture2D:
 			var texture := _find_texture("%s%s%s"%[
 				base_prefix,
 				num,
-				texturename.trim_prefix("%s%s"%[base_prefix,base_num])
+				texturename.trim_prefix(trim)
 			])
 			if texture != null: textures.append(texture)
-		animated_texture.frames = textures.size()
+		var alt_textures: Array[Texture2D]
+		var alt_dictionary: Dictionary[String, int]
+		for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+			var texture := _find_texture("%s%s%s"%[
+				base_prefix,
+				char,
+				texturename.trim_prefix(trim)
+			])
+			if texture != null:
+				textures.append(texture)
+				alt_dictionary[char] = textures.size()
+		animated_texture.frames = textures.size() + alt_textures.size()
 		if base_num < textures.size(): animated_texture.current_frame = base_num
 		for n in textures.size():
 			animated_texture.set_frame_texture(n, textures[n])
+		for n in alt_textures.size():
+			animated_texture.set_frame_texture(n + textures.size(), alt_textures[n])
+			animated_texture.set_frame_duration(n + textures.size(), 0)
+			alt_dictionary[alt_dictionary.keys()[n]] = n + textures.size()
 		animated_texture.speed_scale = textures.size() * settings.animated_texture_speed_scale
+		animated_texture.set_meta(&"alt_tex_indices", alt_dictionary)
+		if base_char != "":
+			animated_texture.current_frame = alt_dictionary.get(base_char, 0)
+			animated_texture.pause = true
 		return animated_texture
 	else: return _find_texture(texturename)
 
