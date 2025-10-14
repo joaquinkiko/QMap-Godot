@@ -13,6 +13,21 @@ enum GroupingType{
 	LAYER,
 	GROUP}
 
+## Flags for generating solid geometry
+enum GeometryFlags{
+	## Generate [MeshInstance3D]
+	RENDER = 					0b0001,
+	## Generate concave [CollisionShape3D] (Prefered for [StaticBody3D])
+	CONCAVE_COLLISIONS = 		0b0010,
+	## Generate multiple convex [CollisionShape3D] (Prefered for [Area3D])
+	## (Will take priority over [enum GeometryFlags.CONCAVE_COLLISIONS])
+	CONVEX_COLLISIONS = 		0b0100,
+	## Generate [OccluderInstance3D]
+	OCCLUSION = 				0b1000,
+}
+## Default geometry generation flags (see [enum GeometryFlags])
+const GEOMETRY_FLAG_DEFAULT := 	0b1011
+
 class Brush extends RefCounted:
 	var faces: Array[Face]
 	## Array of planes from [member faces]
