@@ -76,6 +76,65 @@ class_name QMapSettings extends Resource
 @export var suffix_ao: String = "_ao"
 ## Texture suffix for height map
 @export var suffix_height: String = "_height"
+@export_group("Worldspawn Properties")
+## Whether worldspawn should generate [WorldEnvironment] settings
+@export var worldspawn_generate_enviroment: bool = true
+## Whether worldspawn should generate a skybox
+@export var worldspawn_generate_skybox: bool = true
+## Whether worldspawn should generate [DirectionalLight3D] settings
+@export var worldspawn_generate_sunlight: bool = true
+## Material for skybox
+@export var skybox_material: Material
+## Path to apply texture to [member skybox_material]
+@export var skybox_material_texture_path: String = "albedo_texture"
+## Size of skybox
+@export var skybox_scale: float = 4096
+## Worldspawn proprty for defining [WorldEnvironment] ambient light level
+@export var worldspawn_ambient_light: StringName = &"light"
+## Worldspawn proprty for defining [WorldEnvironment] ambient light color
+@export var worldspawn_ambient_color: StringName = &"_minlight_color"
+## Worldspawn proprty for defining texture to load into [WorldEnvironment] sky
+@export var worldspawn_skyname: StringName = &"skyname"
+## Worldspawn property for defining [DirectionalLight3D] light level
+@export var worldspawn_sunlight: StringName = &"_sunlight"
+## Worldspawn property for defining [DirectionalLight3D] light angle
+@export var worldspawn_sun_angle: StringName = &"_sun_mangle"
+## Worldspawn property for defining [DirectionalLight3D] light color
+@export var worldspawn_sun_color: StringName = &"_sunlight_color"
+## Worldspawn property for defining if [DirectionalLight3D] should cast shadows
+@export var worldspawn_sun_shadows: StringName = &"_sun_shadows"
+## Worldspawn property for defining [DirectionalLight3D] angular distance for soft shadows
+@export var worldspawn_sun_penumbra: StringName = &"_sunlight_penumbra"
+## Worldspawn property for enabling ambient occlusion
+@export var worldspawn_ao_enabled: StringName = &"_dirt"
+## Worldspawn property for enabling ambient occlusion
+@export var worldspawn_ao_intensity: StringName = &"_dirtscale"
+## Worldspawn property for enabling ambient occlusion
+@export var worldspawn_ao_radius: StringName = &"_dirtgain"
+@export_group("Worldspawn Properties Defaults")
+## Default value of [member worldspawn_ambient_light]
+@export var default_ambient_light: String = "0.2"
+## Default value of [member worldspawn_ambient_color]
+@export var default_ambient_color: String = "255 255 255"
+## Default value of [member worldspawn_skyname]
+@export var default_skyname: String = ""
+## Default value of [member worldspawn_sunlight]
+@export var default_sunlight: String = "0.0"
+## Default value of [member worldspawn_sun_angle]
+@export var default_sun_angle: String = "-90 0 0"
+## Default value of [member worldspawn_sun_color]
+@export var default_sun_color: String = "255 255 255"
+## Default value of [member worldspawn_sun_shadows]
+@export var default_sun_shadows: String = "0"
+## Default value of [member worldspawn_sun_penumbra]
+@export var default_sun_penumbra: String = "3.0"
+## Default value of [member worldspawn_ao_enabled]
+@export var default_ao_enabled: String = "0"
+## Default value of [member worldspawn_ao_intensity]
+@export var default_ao_intensity: String = "2"
+## Default value of [member worldspawn_ao_radius]
+@export var default_ao_radius: String = "1"
+
 
 ## Base paths (including mods)
 func get_paths_base(mods := PackedStringArray([])) -> PackedStringArray:

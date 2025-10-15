@@ -703,6 +703,12 @@ func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 	return tex_uv
 
 func _pass_to_scene_tree() -> void:
+	# Find worldspawn and apply special properties
+	for entity: QEntity in _entities.keys():
+		if entity.classname == "worldspawn":
+			_worldspawn_generation(entity.properties, _entities[entity])
+			break
+	# Pass entities to SceneTree
 	for entity: QEntity in _entities.keys():
 		var data: SolidData = _solid_data[entity]
 		var node := _entities[entity]
@@ -748,3 +754,85 @@ func _pass_to_scene_tree() -> void:
 				occluder_instance.occluder = data.occluder
 				_entities[entity].add_child(occluder_instance)
 		add_child(node, true)
+
+## Generate special worldspawn node properties
+func _worldspawn_generation(properties: Dictionary[StringName, String], node: Node) -> void:
+	# World Enviroment generation
+	if settings.worldspawn_generate_enviroment:
+		var world_env: WorldEnvironment
+		var already_has_node: bool
+		# Use child [WorldEnvironment] if present
+		for child in node.get_children():
+			if child is WorldEnvironment:
+				world_env = child
+				already_has_node = true
+				break
+		if !already_has_node:
+			world_env = WorldEnvironment.new()
+			node.add_child(world_env)
+		# Create [Environment] if none present
+		if world_env.environment == null: world_env.environment = Environment.new()
+		# Ambient light
+		world_env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		world_env.environment.ambient_light_energy = properties.get(settings.worldspawn_ambient_light, settings.default_ambient_light).to_float()
+		var color_raw: PackedStringArray = properties.get(settings.worldspawn_ambient_color, settings.default_ambient_color).split(" ", false)
+		if color_raw.size() >= 3:
+			world_env.environment.ambient_light_color = Color8(
+				color_raw[0].to_float(),
+				color_raw[1].to_float(),
+				color_raw[2].to_float()
+			)
+		# SSAO (could we ever bake AO into mesh during loading?)
+		world_env.environment.ssao_enabled = bool(properties.get(settings.worldspawn_ao_enabled, settings.default_ao_enabled).to_int())
+		world_env.environment.ssao_intensity = properties.get(settings.worldspawn_ao_intensity, settings.default_ao_intensity).to_float()
+		world_env.environment.ssao_radius = properties.get(settings.worldspawn_ao_radius, settings.default_ao_radius).to_float()
+	# Sunlight generation
+	if settings.worldspawn_generate_sunlight:
+		var dir_light: DirectionalLight3D
+		var already_has_node: bool
+		# Use child [DirectionalLight3D] if present
+		for child in node.get_children():
+			if child is DirectionalLight3D:
+				dir_light = child
+				already_has_node = true
+				break
+		if !already_has_node:
+			dir_light = DirectionalLight3D.new()
+			node.add_child(dir_light)
+		dir_light.light_bake_mode = Light3D.BAKE_STATIC
+		dir_light.light_energy = properties.get(settings.worldspawn_sunlight, settings.default_sunlight).to_float()
+		dir_light.shadow_enabled = bool(properties.get(settings.worldspawn_sun_shadows, settings.default_sun_shadows).to_int())
+		dir_light.light_angular_distance = properties.get(settings.worldspawn_sun_penumbra, settings.default_sun_penumbra).to_float()
+		var raw_angle: PackedStringArray = properties.get(settings.worldspawn_sun_angle, settings.default_sun_angle).split(" ", false)
+		if raw_angle.size() >= 3:
+			dir_light.rotation_degrees = Vector3(
+				raw_angle[0].to_float(),
+				raw_angle[1].to_float(),
+				raw_angle[2].to_float()
+			)
+		var raw_color: PackedStringArray = properties.get(settings.worldspawn_sun_color, settings.default_sun_color).split(" ", false)
+		if raw_color.size() >= 3:
+			dir_light.light_color = Color8(
+				raw_color[0].to_float(),
+				raw_color[1].to_float(),
+				raw_color[2].to_float()
+			)
+	# Skybox generation
+	if settings.worldspawn_generate_skybox:
+		var skyname: String = properties.get(settings.worldspawn_skyname, settings.worldspawn_skyname)
+		if skyname != "":
+			var skybox_instance := MeshInstance3D.new()
+			skybox_instance.mesh = BoxMesh.new()
+			skybox_instance.mesh.flip_faces = true
+			skybox_instance.mesh.size = Vector3.ONE * settings.skybox_scale
+			skybox_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			skybox_instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+			var material := settings.skybox_material
+			if material != null:
+				var texture: Texture2D
+				for path in settings.get_paths_textures(map.mods): for extension in settings.texture_extensions:
+					if ResourceLoader.exists("%s/%s.%s"%[path, skyname, extension]):
+						texture = ResourceLoader.load("%s/%s.%s"%[path, skyname, extension])
+				material.set(settings.skybox_material_texture_path, texture)
+				skybox_instance.mesh.material = material
+			node.add_child(skybox_instance)
