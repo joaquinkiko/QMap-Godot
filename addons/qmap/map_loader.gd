@@ -184,6 +184,7 @@ func _create_entity_maps() -> void:
 	for entity in map.entities: brush_count += entity.brushes.size()
 	if verbose: print("\t\t-Initializing %s entities and %s brushes..."%[map.entities.size(),brush_count])
 	for entity in map.entities:
+		entity.add_base_properties(settings.fgd)
 		_entities[entity] = null
 		if entity.brushes.size() > 0:
 			var data := SolidData.new()
@@ -259,7 +260,7 @@ func _generate_materials(index: int) -> void:
 			material.set("normal_texture", pbr_texture)
 		var normal_texture := _find_texture_or_animated("%s%s"%[texturename, settings.suffix_metallic])
 		if pbr_texture != null: material.set("metallic_texture", pbr_texture)
-		pbr_texture = _find_te_find_texture_or_animatedxture("%s%s"%[texturename, settings.suffix_roughness])
+		pbr_texture = _find_texture_or_animated("%s%s"%[texturename, settings.suffix_roughness])
 		if pbr_texture != null: material.set("roughness_texture", pbr_texture)
 		pbr_texture = _find_texture_or_animated("%s%s"%[texturename, settings.suffix_emission])
 		if pbr_texture != null:
@@ -292,7 +293,7 @@ func _find_texture_or_animated(texturename: StringName) -> Texture2D:
 				trim = "%s%s"%[base_prefix,base_num]
 				break
 		for prefix in settings.animated_texture_prefixes: for char in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
-			if texturename.begins_with("%s%s"%[prefix,num]):
+			if texturename.begins_with("%s%s"%[prefix,char]):
 				is_animated = true
 				base_prefix = prefix
 				base_char = char
@@ -319,6 +320,7 @@ func _find_texture_or_animated(texturename: StringName) -> Texture2D:
 			if texture != null:
 				textures.append(texture)
 				alt_dictionary[char] = textures.size()
+		if textures.size() + alt_textures.size() < 1: return _find_texture(texturename)
 		animated_texture.frames = textures.size() + alt_textures.size()
 		if base_num < textures.size(): animated_texture.current_frame = base_num
 		for n in textures.size():

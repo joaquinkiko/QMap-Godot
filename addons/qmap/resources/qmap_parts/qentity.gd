@@ -147,7 +147,7 @@ var phong_angle: float:
 	get: return properties.get(&"_phong_angle", "89.0").to_float()
 ## Property "_geo_flags"
 var geometry_flags: int:
-	get: return properties.get(&"_geo_flags", GEOMETRY_FLAG_DEFAULT).to_int()
+	get: return properties.get(&"_geo_flags", "%s"%GEOMETRY_FLAG_DEFAULT).to_int()
 ## Array of brushes
 var brushes: Array[Brush]
 
@@ -160,6 +160,13 @@ func is_solid(fgd: FGD) -> bool:
 	var fgd_class: FGDClass = fgd.classes.get(classname)
 	if fgd_class == null: return false
 	return fgd_class.class_type == FGDClass.ClassType.SOLID
+
+## Updates [member properties] to include default values from FGD
+func add_base_properties(fgd: FGD) -> void:
+	var fgd_class: FGDClass = fgd.classes.get(classname)
+	if fgd_class == null: return
+	for key in fgd_class.properties.keys():
+		if !properties.has(key): properties[key] = fgd_class.properties[key].default_value
 
 ## Returns dictionary of properties (both defined, and default values)
 ## parsed into their correct [Variant] types as defined by [param fgd]
