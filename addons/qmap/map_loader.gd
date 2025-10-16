@@ -818,6 +818,28 @@ func _worldspawn_generation(properties: Dictionary[StringName, String], node: No
 		world_env.environment.ssao_enabled = bool(properties.get(settings.worldspawn_ao_enabled, settings.default_ao_enabled).to_int())
 		world_env.environment.ssao_intensity = properties.get(settings.worldspawn_ao_intensity, settings.default_ao_intensity).to_float()
 		world_env.environment.ssao_radius = properties.get(settings.worldspawn_ao_radius, settings.default_ao_radius).to_float()
+		# Sky material
+		var skyname: String = properties.get(settings.worldspawn_skyname, settings.default_skyname)
+		var sky_texture: Texture2D
+		if skyname != "":
+			for path in settings.get_paths_textures(map.mods): for extension in settings.texture_extensions:
+				if ResourceLoader.exists("%s/%s.%s"%[path, skyname, extension]):
+					sky_texture= ResourceLoader.load("%s/%s.%s"%[path, skyname, extension])
+		if sky_texture != null:
+			world_env.environment.background_mode = Environment.BG_SKY
+			world_env.environment.sky = Sky.new()
+			if settings.custom_sky_material != null:
+				world_env.environment.sky.sky_material = settings.custom_sky_material
+			else:
+				world_env.environment.sky.sky_material = PanoramaSkyMaterial.new()
+			for path in settings.get_paths_textures(map.mods): for extension in settings.texture_extensions:
+				if ResourceLoader.exists("%s/%s.%s"%[path, skyname, extension]):
+					if settings.custom_sky_material != null:
+						world_env.environment.sky.sky_material.set(settings.custom_sky_texture_path, sky_texture)
+					else:
+						world_env.environment.sky.sky_material.panorama = sky_texture
+			if !properties.has(settings.worldspawn_ambient_color):
+				world_env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	# Sunlight generation
 	if settings.worldspawn_generate_sunlight:
 		var dir_light: DirectionalLight3D
@@ -850,23 +872,3 @@ func _worldspawn_generation(properties: Dictionary[StringName, String], node: No
 				raw_color[1].to_float(),
 				raw_color[2].to_float()
 			)
-	# Skybox generation
-	if settings.worldspawn_generate_skybox:
-		var skyname: String = properties.get(settings.worldspawn_skyname, settings.worldspawn_skyname)
-		if skyname != "":
-			var skybox_instance := MeshInstance3D.new()
-			skybox_instance.name = "Skybox"
-			skybox_instance.mesh = BoxMesh.new()
-			skybox_instance.mesh.flip_faces = true
-			skybox_instance.mesh.size = Vector3.ONE * settings.skybox_scale
-			skybox_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			skybox_instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-			var material := settings.skybox_material
-			if material != null:
-				var texture: Texture2D
-				for path in settings.get_paths_textures(map.mods): for extension in settings.texture_extensions:
-					if ResourceLoader.exists("%s/%s.%s"%[path, skyname, extension]):
-						texture = ResourceLoader.load("%s/%s.%s"%[path, skyname, extension])
-				material.set(settings.skybox_material_texture_path, texture)
-				skybox_instance.mesh.material = material
-			node.add_child(skybox_instance)

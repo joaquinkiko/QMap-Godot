@@ -92,11 +92,9 @@ class_name QMapSettings extends Resource
 ## Whether worldspawn should generate [DirectionalLight3D] settings
 @export var worldspawn_generate_sunlight: bool = true
 ## Material for skybox
-@export var skybox_material: Material
+@export var custom_sky_material: Material
 ## Path to apply texture to [member skybox_material]
-@export var skybox_material_texture_path: String = "albedo_texture"
-## Size of skybox
-@export var skybox_scale: float = 4096
+@export var custom_sky_texture_path: String = "panorama"
 ## Worldspawn proprty for defining [WorldEnvironment] ambient light level
 @export var worldspawn_ambient_light: StringName = &"light"
 ## Worldspawn proprty for defining [WorldEnvironment] ambient light color
