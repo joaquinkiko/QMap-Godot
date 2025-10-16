@@ -35,7 +35,8 @@ enum SmartProperties{
 	"Transparent:%s"%SmartProperties.TRANSPARENT,
 	"Non-colliding:%s"%SmartProperties.NON_COLLIDING,
 	"Non-pathfinding:%s"%SmartProperties.NON_PATHFINDING,
-	"Non-rendered:%s"%SmartProperties.NON_RENDERED
+	"Non-rendered:%s"%SmartProperties.NON_RENDERED,
+	"Non-occluding:%s"%SmartProperties.NON_OCCLUDING
 	)
 var properties: int
 ## Overriders [member default_material] for this surface or entity

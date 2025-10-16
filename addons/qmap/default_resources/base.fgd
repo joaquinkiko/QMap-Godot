@@ -1,0 +1,11 @@
+// Default QMap FGD
+// 
+// Author: Joaquin F.C.
+
+@SolidClass size(16 16 16) color(255 0 255) = worldspawn : "World entity" []
+@BaseClass size(16 16 16) color(255 0 255) = phong : "Base class for applying phong properties" 
+[
+	_phong(integer) : 1 
+	_phong_angle(float) : "89.0" 
+]
+

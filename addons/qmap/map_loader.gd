@@ -40,7 +40,7 @@ signal progress(percentage: float, task: String)
 ## [QMap] to load on [method load_map]
 @export var map: QMap
 ## Settings to use for generation
-@export var settings: QMapSettings
+@export var settings: QMapSettings = preload("res://addons/qmap/default_resources/default_settings.tres")
 @export_group("Additional Settings")
 ## If true, will automatically call [method load_map] during [method _ready]
 @export var auto_load_map: bool = true

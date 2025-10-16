@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="QMapSmartTag" load_steps=2 format=3 uid="uid://m26xdpom1dku"]
+
+[ext_resource type="Script" uid="uid://b4wvhedbwsrlj" path="res://addons/qmap/resources/smart_tags.gd" id="1_16abc"]
+
+[resource]
+script = ExtResource("1_16abc")
+name = &"Null"
+match_type = 0
+pattern = "null"
+default_texture = &""
+properties = 25
+metadata/_custom_type_script = "uid://b4wvhedbwsrlj"

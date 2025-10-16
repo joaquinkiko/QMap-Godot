@@ -1,0 +1,76 @@
+[gd_resource type="Resource" script_class="QMapSettings" load_steps=12 format=3 uid="uid://dpdpj8asasxq5"]
+
+[ext_resource type="Script" uid="uid://efrmdj54rngw" path="res://addons/qmap/resources/face_attribute.gd" id="1_vbtcy"]
+[ext_resource type="Script" uid="uid://buvscamp8f8pm" path="res://addons/qmap/resources/wad.gd" id="2_eq173"]
+[ext_resource type="Script" uid="uid://wu0lh7ysksg" path="res://addons/qmap/resources/map_settings.gd" id="3_e6v0l"]
+[ext_resource type="Resource" uid="uid://c4ftrxuuqi3vd" path="res://addons/qmap/default_resources/base.fgd" id="3_eq173"]
+[ext_resource type="Script" uid="uid://b4wvhedbwsrlj" path="res://addons/qmap/resources/smart_tags.gd" id="4_fju0o"]
+[ext_resource type="Resource" uid="uid://b8o44o1trm6yk" path="res://addons/qmap/default_resources/smart_tags/SmartTagClip.tres" id="6_eg1wi"]
+[ext_resource type="Resource" uid="uid://1lpbu4xwmgjd" path="res://addons/qmap/default_resources/smart_tags/SmartTagSkip.tres" id="7_go8lc"]
+[ext_resource type="Resource" uid="uid://m26xdpom1dku" path="res://addons/qmap/default_resources/smart_tags/SmartTagNull.tres" id="8_0s0x7"]
+[ext_resource type="Resource" uid="uid://ujhxpehuicoe" path="res://addons/qmap/default_resources/smart_tags/SmartTagHint.tres" id="9_fojrp"]
+[ext_resource type="Resource" uid="uid://u2rl2qsglp6m" path="res://addons/qmap/default_resources/smart_tags/SmartTagTrigger.tres" id="10_3ukk4"]
+[ext_resource type="Resource" uid="uid://bafub5slaqcgs" path="res://addons/qmap/default_resources/smart_tags/SmartTagLiquid.tres" id="11_nidl0"]
+
+[resource]
+script = ExtResource("3_e6v0l")
+fgd = ExtResource("3_eq173")
+scaling = 32
+uv_unwrap_texel_ratio = 16
+unwrap_uvs = false
+soft_map_bounds = AABB(4096, 4096, 4096, -4096, -4096, -4096)
+texture_origin = &"origin"
+empty_textures = Array[StringName]([&"__tb_empty"])
+smart_tags = Array[ExtResource("4_fju0o")]([ExtResource("6_eg1wi"), ExtResource("7_go8lc"), ExtResource("8_0s0x7"), ExtResource("9_fojrp"), ExtResource("10_3ukk4"), ExtResource("11_nidl0")])
+surface_flags = Array[ExtResource("1_vbtcy")]([])
+content_flags = Array[ExtResource("1_vbtcy")]([])
+extra_wads = Array[ExtResource("2_eq173")]([])
+texture_extensions = ["png", "jpg", "jpeg", "bmp", "tga"]
+material_extensions = ["tres"]
+base_path = &"."
+path_textures = &"textures"
+path_decals = &"decals"
+path_materials = &"materials"
+path_sounds = &"sounds"
+path_models = &"models"
+path_scenes = &"scenes"
+default_material_texture_path = "albedo_texture"
+default_material_transparency_path = "transparency"
+transparency_alphatest_value = 2
+allow_animated_textures = true
+animated_texture_prefixes = ["+"]
+animated_texture_speed_scale = 1.0
+use_pbr = true
+suffix_normal = "_normal"
+suffix_metallic = "_metallic"
+suffix_roughness = "_roughness"
+suffix_emission = "_emission"
+suffix_ao = "_ao"
+suffix_height = "_height"
+worldspawn_generate_enviroment = true
+worldspawn_generate_skybox = true
+worldspawn_generate_sunlight = true
+custom_sky_texture_path = "panorama"
+worldspawn_ambient_light = &"light"
+worldspawn_ambient_color = &"_minlight_color"
+worldspawn_skyname = &"skyname"
+worldspawn_sunlight = &"_sunlight"
+worldspawn_sun_angle = &"_sun_mangle"
+worldspawn_sun_color = &"_sunlight_color"
+worldspawn_sun_shadows = &"_sun_shadows"
+worldspawn_sun_penumbra = &"_sunlight_penumbra"
+worldspawn_ao_enabled = &"_dirt"
+worldspawn_ao_intensity = &"_dirtscale"
+worldspawn_ao_radius = &"_dirtgain"
+default_ambient_light = "0.2"
+default_ambient_color = "255 255 255"
+default_skyname = ""
+default_sunlight = "0.0"
+default_sun_angle = "-90 0 0"
+default_sun_color = "255 255 255"
+default_sun_shadows = "0"
+default_sun_penumbra = "3.0"
+default_ao_enabled = "0"
+default_ao_intensity = "2"
+default_ao_radius = "1"
+metadata/_custom_type_script = "uid://wu0lh7ysksg"

@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="FGDClass" load_steps=5 format=3 uid="uid://b1ra6xvo1kdf"]
+
+[ext_resource type="Script" uid="uid://vrs1w61or8ju" path="res://addons/qmap/resources/fgd_resources/fgd_entity_property.gd" id="1_lqro1"]
+[ext_resource type="Script" uid="uid://dvbj3lpes7qyb" path="res://addons/qmap/resources/fgd_resources/fgd_class.gd" id="2_12h4q"]
+
+[sub_resource type="Resource" id="Resource_6sc53"]
+script = ExtResource("1_lqro1")
+type = 1
+default_value = "1"
+display_name = ""
+display_tooltip = ""
+choices = Dictionary[int, String]({})
+default_flags = PackedInt32Array()
+metadata/_custom_type_script = "uid://vrs1w61or8ju"
+
+[sub_resource type="Resource" id="Resource_5fufr"]
+script = ExtResource("1_lqro1")
+type = 2
+default_value = "89.0"
+display_name = ""
+display_tooltip = ""
+choices = Dictionary[int, String]({})
+default_flags = PackedInt32Array()
+metadata/_custom_type_script = "uid://vrs1w61or8ju"
+
+[resource]
+script = ExtResource("2_12h4q")
+class_type = 0
+base_classes = PackedStringArray()
+description = "Base class for applying phong properties"
+properties = Dictionary[String, ExtResource("1_lqro1")]({
+"_phong": SubResource("Resource_6sc53"),
+"_phong_angle": SubResource("Resource_5fufr")
+})
+sizing_type = 1
+negative_size = Vector3i(0, 0, 0)
+positive_size = Vector3i(16, 16, 16)
+color = Color(1, 0, 1, 1)
+icon_sprite = ""
+studio = ""
+includes_decal = false
+includes_sprite = false
+metadata/_custom_type_script = "uid://dvbj3lpes7qyb"

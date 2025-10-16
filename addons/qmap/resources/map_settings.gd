@@ -1,14 +1,14 @@
 class_name QMapSettings extends Resource
 
 ## [FGD] to initialize entities with
-@export var fgd: FGD
+@export var fgd: FGD = preload("res://addons/qmap/default_resources/base.fgd")
 @export_group("Scaling")
 ## QUnit to Godot scaling ratio
 @export_range(1, 256, 1) var scaling: int = 32
 ## Ratio for UV unwrapping
 @export_range(1, 256, 1) var uv_unwrap_texel_ratio: int = 16
 ## If true will unwrap mesh UVs for lightmapping
-@export var unwrap_uvs: bool = true
+@export var unwrap_uvs: bool = false
 ## Defines typical map bounds
 @export var soft_map_bounds: AABB = AABB(Vector3.ONE * 4096, -Vector3.ONE * 4096)
 @export_group("Special Textures")
@@ -16,14 +16,7 @@ class_name QMapSettings extends Resource
 @export var texture_origin: StringName = "origin"
 ## These textures will just use the default placeholder
 @export var empty_textures: Array[StringName] = ["__tb_empty"]
-@export var smart_tags: Array[QMapSmartTag] = [
-	QMapSmartTag.new(&"Clip", 0, "clip", &"", 0b01001),
-	QMapSmartTag.new(&"Skip", 0, "skip", &"", 0b01011),
-	QMapSmartTag.new(&"Hint", 0, "hint*", &"", 0b01011),
-	QMapSmartTag.new(&"Null", 0, "null", &"", 0b01011),
-	QMapSmartTag.new(&"Trigger", 3, "trigger*", &"trigger", 0b01001),
-	QMapSmartTag.new(&"Liquid", 0, "\\**", &"", 0b00001)
-]
+@export var smart_tags: Array[QMapSmartTag]
 @export_group("Face Attributes")
 ## Surface flags in bitflag order (1,2,4...). May have up to 32. Null fields will be treated as unused
 @export var surface_flags: Array[QMapFaceAttribute]

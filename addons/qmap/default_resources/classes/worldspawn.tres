@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="FGDClass" load_steps=3 format=3 uid="uid://da18sv81xx00a"]
+
+[ext_resource type="Script" uid="uid://vrs1w61or8ju" path="res://addons/qmap/resources/fgd_resources/fgd_entity_property.gd" id="1_a0ksj"]
+[ext_resource type="Script" uid="uid://dvbj3lpes7qyb" path="res://addons/qmap/resources/fgd_resources/fgd_class.gd" id="2_bsvq6"]
+
+[resource]
+script = ExtResource("2_bsvq6")
+class_type = 1
+base_classes = PackedStringArray()
+description = "World entity"
+properties = Dictionary[String, ExtResource("1_a0ksj")]({})
+sizing_type = 1
+negative_size = Vector3i(0, 0, 0)
+positive_size = Vector3i(16, 16, 16)
+color = Color(1, 0, 1, 1)
+icon_sprite = ""
+studio = ""
+includes_decal = false
+includes_sprite = false
+metadata/_custom_type_script = "uid://dvbj3lpes7qyb"

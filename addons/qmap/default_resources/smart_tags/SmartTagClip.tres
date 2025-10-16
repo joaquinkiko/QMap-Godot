@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="QMapSmartTag" load_steps=2 format=3 uid="uid://b8o44o1trm6yk"]
+
+[ext_resource type="Script" uid="uid://b4wvhedbwsrlj" path="res://addons/qmap/resources/smart_tags.gd" id="1_xp1u0"]
+
+[resource]
+script = ExtResource("1_xp1u0")
+name = &"Clip"
+match_type = 0
+pattern = "clip"
+default_texture = &""
+properties = 25
+metadata/_custom_type_script = "uid://b4wvhedbwsrlj"
