@@ -24,6 +24,8 @@ class SolidData extends RefCounted:
 		var indices: PackedInt32Array
 		var texture: StringName
 		var is_trigger: bool
+		var surface_flag: int
+		var content_flag: int
 	var brushes: Array[BrushData]
 	var origin: Vector3
 	var render_mesh: ArrayMesh
@@ -208,6 +210,8 @@ func _create_entity_maps() -> void:
 						face_data.v_axis = Vector3(
 							face.v_offset.x, face.v_offset.y, face.v_offset.z
 						).normalized()
+					face_data.surface_flag = face.surface_flag
+					face_data.content_flag = face.contents_flag
 					brush_data.faces.append(face_data)
 				for face_data in brush_data.faces: face_data.is_trigger = brush_data.is_trigger
 				data.brushes.append(brush_data)
@@ -603,6 +607,7 @@ func _generate_meshes(index: int) -> void:
 			arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
 			#arrays[Mesh.ARRAY_COLOR] = PackedColorArray()
 			for face in data.sorted_faces[texture]:
+				if !_is_render_content_flag(face.content_flag) || !_is_render_surface_flag(face.surface_flag): continue
 				for i in face.indices:
 					arrays[Mesh.ARRAY_VERTEX].append(
 						_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor
@@ -678,6 +683,22 @@ func _is_render_class(classname: String) -> bool:
 	if show_non_rendered_textures: return true
 	for pattern in settings.get_non_rendered_entities():
 		if classname.to_lower().match(pattern.to_lower()): return false
+	return true
+
+## Returns true if surface flag should be rendered
+func _is_render_surface_flag(flag: int) -> bool:
+	if show_non_rendered_textures: return true
+	for pattern in settings.get_non_rendered_surfaces():
+		if pattern == 0: continue
+		if flag & pattern: return false
+	return true
+
+## Returns true if content flag should be rendered
+func _is_render_content_flag(flag: int) -> bool:
+	if show_non_rendered_textures: return true
+	for pattern in settings.get_non_rendered_content():
+		if pattern == 0: continue
+		if flag & pattern: return false
 	return true
 
 func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
