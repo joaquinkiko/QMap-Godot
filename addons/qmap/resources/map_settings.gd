@@ -10,7 +10,7 @@ class_name QMapSettings extends Resource
 ## If true will unwrap mesh UVs for lightmapping
 @export var unwrap_uvs: bool = true
 ## Defines typical map bounds
-@export var soft_map_bounds: AABB = AABB(Vector3.ONE * 4096, Vector3.ONE * 4096)
+@export var soft_map_bounds: AABB = AABB(Vector3.ONE * 4096, -Vector3.ONE * 4096)
 @export_group("Special Textures")
 ## This texture will be used to identify orign brushes. This also won't create collisions, nor be rendered
 @export var texture_origin: StringName = "origin"
