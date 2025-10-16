@@ -9,18 +9,26 @@ class_name QMapSettings extends Resource
 @export_range(1, 256, 1) var uv_unwrap_texel_ratio: int = 16
 ## If true will unwrap mesh UVs for lightmapping
 @export var unwrap_uvs: bool = true
+## Defines typical map bounds
+@export var soft_map_bounds: AABB = AABB(Vector3.ONE * 4096, Vector3.ONE * 4096)
 @export_group("Special Textures")
-## This texture will be used to identify orign brushes
+## This texture will be used to identify orign brushes. This also won't create collisions, nor be rendered
 @export var texture_origin: StringName = "origin"
-## These textures will not be rendered
-@export var non_rendered_textures: Array[StringName] = ["clip", "skip", "trigger", "hint", "null"]
-## Brushes textured with these will use seperate convex collision meshes.
-##
-## This is mainly for creating collisions for [CollisionShape3D] for Triggers
-## where typical concave collision generation can cause issues.
-@export var convex_trigger_textures: Array[StringName] = ["trigger"]
 ## These textures will just use the default placeholder
 @export var empty_textures: Array[StringName] = ["__tb_empty"]
+@export var smart_tags: Array[QMapSmartTag] = [
+	QMapSmartTag.new(&"Clip", 0, "clip", &"", 0b01001),
+	QMapSmartTag.new(&"Skip", 0, "skip", &"", 0b01011),
+	QMapSmartTag.new(&"Hint", 0, "hint*", &"", 0b01011),
+	QMapSmartTag.new(&"Null", 0, "null", &"", 0b01011),
+	QMapSmartTag.new(&"Trigger", 3, "trigger*", &"trigger", 0b01001),
+	QMapSmartTag.new(&"Liquid", 0, "\\**", &"", 0b00001)
+]
+@export_group("Face Attributes")
+## Surface flags in bitflag order (1,2,4...). May have up to 32. Null fields will be treated as unused
+@export var surface_flags: Array[QMapFaceAttribute]
+## Content flags in bitflag order (1,2,4...). May have up to 32. Null fields will be treated as unused
+@export var content_flags: Array[QMapFaceAttribute]
 @export_group("Texture Settings")
 ## Wad files to always load during map generation
 @export var extra_wads: Array[WAD]
@@ -135,6 +143,167 @@ class_name QMapSettings extends Resource
 ## Default value of [member worldspawn_ao_radius]
 @export var default_ao_radius: String = "1"
 
+## Returns list of non-rendered texture patterns
+func get_non_rendered_textures() -> PackedStringArray:
+	var output: PackedStringArray
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.MATERIAL: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_RENDERED:
+			output.append(tag.pattern)
+	return output
+
+## Returns list of non-rendered classname patterns
+func get_non_rendered_entities() -> PackedStringArray:
+	var output: PackedStringArray
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.CLASSNAME: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_RENDERED:
+			output.append(tag.pattern)
+	return output
+
+## Returns list of non-rendered surface flag values
+func get_non_rendered_surfaces() -> PackedInt32Array:
+	var output: PackedInt32Array
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.SURFACE_FLAG: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_RENDERED:
+			output.append(find_content_flag(tag.pattern))
+	return output
+
+## Returns list of non-rendered content flag values
+func get_non_rendered_content() -> PackedInt32Array:
+	var output: PackedInt32Array
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.CONTENT_FLAG: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_RENDERED:
+			output.append(find_content_flag(tag.pattern))
+	return output
+
+## Returns list of non-occluding texture patterns
+func get_non_occluding_textures() -> PackedStringArray:
+	var output: PackedStringArray
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.MATERIAL: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_OCCLUDING || tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
+			output.append(tag.pattern)
+	return output
+
+## Returns list of non-occluding classname patterns
+func get_non_occluding_entities() -> PackedStringArray:
+	var output: PackedStringArray
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.CLASSNAME: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_OCCLUDING || tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
+			output.append(tag.pattern)
+	return output
+
+## Returns list of non-occluding surface flag values
+func get_non_occluding_surfaces() -> PackedInt32Array:
+	var output: PackedInt32Array
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.SURFACE_FLAG: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_OCCLUDING || tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
+			output.append(find_content_flag(tag.pattern))
+	return output
+
+## Returns list of non-occluding content flag values
+func get_non_occluding_content() -> PackedInt32Array:
+	var output: PackedInt32Array
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.CONTENT_FLAG: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_OCCLUDING || tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
+			output.append(find_content_flag(tag.pattern))
+	return output
+
+## Returns list of non-colliding texture patterns
+func get_non_colliding_textures() -> PackedStringArray:
+	var output: PackedStringArray
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.MATERIAL: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_COLLIDING:
+			output.append(tag.pattern)
+	return output
+
+## Returns list of non-colliding classname patterns
+func get_non_colliding_entities() -> PackedStringArray:
+	var output: PackedStringArray
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.CLASSNAME: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_COLLIDING:
+			output.append(tag.pattern)
+	return output
+
+## Returns list of non-colliding surface flag values
+func get_non_colliding_surfaces() -> PackedInt32Array:
+	var output: PackedInt32Array
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.SURFACE_FLAG: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_COLLIDING:
+			output.append(find_content_flag(tag.pattern))
+	return output
+
+## Returns list of non-colliding content flag values
+func get_non_colliding_content() -> PackedInt32Array:
+	var output: PackedInt32Array
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.CONTENT_FLAG: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_COLLIDING:
+			output.append(find_content_flag(tag.pattern))
+	return output
+
+## Returns list of non-pathfinding texture patterns
+func get_non_pathfinding_textures() -> PackedStringArray:
+	var output: PackedStringArray
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.MATERIAL: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_PATHFINDING:
+			output.append(tag.pattern)
+	return output
+
+## Returns list of non-pathfinding classname patterns
+func get_non_pathfinding_entities() -> PackedStringArray:
+	var output: PackedStringArray
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.CLASSNAME: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_PATHFINDING:
+			output.append(tag.pattern)
+	return output
+
+## Returns list of non-pathfinding surface flag values
+func get_non_pathfinding_surfaces() -> PackedInt32Array:
+	var output: PackedInt32Array
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.SURFACE_FLAG: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_PATHFINDING:
+			output.append(find_content_flag(tag.pattern))
+	return output
+
+## Returns list of non-pathfinding content flag values
+func get_non_pathfinding_content() -> PackedInt32Array:
+	var output: PackedInt32Array
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.CONTENT_FLAG: continue
+		if tag.properties & QMapSmartTag.SmartProperties.NON_PATHFINDING:
+			output.append(find_content_flag(tag.pattern))
+	return output
+
+## Returns matching content flag's value, or 0 if the flag doesn't exist
+func find_content_flag(name: StringName) -> int:
+	var bit: int = 1
+	for flag in content_flags:
+		if flag.name == name:
+			return bit
+		bit *= 2
+	return 0
+
+## Returns matching surface flag's value, or 0 if the flag doesn't exist
+func find_surface_flag(name: StringName) -> int:
+	var bit: int = 1
+	for flag in surface_flags:
+		if flag.name == name:
+			return bit
+		bit *= 2
+	return 0
 
 ## Base paths (including mods)
 func get_paths_base(mods := PackedStringArray([])) -> PackedStringArray:

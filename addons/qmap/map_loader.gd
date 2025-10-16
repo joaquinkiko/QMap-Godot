@@ -198,8 +198,6 @@ func _create_entity_maps() -> void:
 					var face_data := SolidData.FaceData.new()
 					face_data.texture = face.texturename
 					if face.texturename.to_lower() != settings.texture_origin.to_lower(): brush_data.is_origin = false
-					for trigger_texture in settings.convex_trigger_textures:
-						if face.texturename.to_lower() != trigger_texture.to_lower(): brush_data.is_trigger = false
 					face_data.plane = face.plane
 					face_data.uv = face.uv
 					face_data.uv_format = face.format
@@ -241,8 +239,7 @@ func _generate_materials(index: int) -> void:
 	## Ignore generation if empty or non-rendered texture
 	for texture in settings.empty_textures:
 		if texturename.to_lower() == texture.to_lower(): return
-	if !show_non_rendered_textures: for texture in settings.non_rendered_textures:
-		if texturename.to_lower() == texture.to_lower(): return
+	if !show_non_rendered_textures && !_is_render_texture(texturename): return
 	## Find texture and material
 	var texture := _find_texture_or_animated(texturename)
 	var material := _find_material(texturename)
@@ -595,7 +592,7 @@ func _generate_meshes(index: int) -> void:
 	var texturenames: Array[StringName] = data.sorted_faces.keys()
 	texturenames.sort()
 	for texture in texturenames:
-		if _is_render_texture(texture):
+		if _is_render_texture(texture) && _is_render_class(entity.classname):
 			var render_surface := data.render_mesh.get_surface_count()
 			if render_surface == RenderingServer.MAX_MESH_SURFACES:
 				printerr("Cannot render additional mesh surfaces on %s!"%entity.classname)
@@ -672,8 +669,15 @@ func _unwrap_uvs(index: int) -> void:
 ## Returns true if texture should be rendered
 func _is_render_texture(texture: StringName) -> bool:
 	if show_non_rendered_textures: return true
-	for non_render_texture in settings.non_rendered_textures:
-		if texture.to_lower() == non_render_texture.to_lower(): return false
+	for pattern in settings.get_non_rendered_textures():
+		if texture.to_lower().match(pattern.to_lower()): return false
+	return true
+
+## Returns true if classname should be rendered
+func _is_render_class(classname: String) -> bool:
+	if show_non_rendered_textures: return true
+	for pattern in settings.get_non_rendered_entities():
+		if classname.to_lower().match(pattern.to_lower()): return false
 	return true
 
 func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
