@@ -737,7 +737,7 @@ func _pass_to_scene_tree() -> void:
 	for entity: QEntity in _entities.keys():
 		var data: SolidData = _solid_data[entity]
 		var node := _entities[entity]
-		node.name = entity.classname
+		node.name = entity.classname.capitalize().replace(" ", "")
 		# Apply position, rotation, and scale modifications
 		if data != null:
 			node.set(&"position", _convert_coordinates(data.origin) * settings._scale_factor)
@@ -764,19 +764,25 @@ func _pass_to_scene_tree() -> void:
 			if data.render_mesh != null && entity.geometry_flags & QEntity.GeometryFlags.RENDER:
 				var mesh_instance := MeshInstance3D.new()
 				mesh_instance.mesh = data.render_mesh
+				mesh_instance.name = "RenderMesh"
 				_entities[entity].add_child(mesh_instance)
 			if data.convex_meshes.size() > 0  && entity.geometry_flags & QEntity.GeometryFlags.CONVEX_COLLISIONS:
+				var count: int = 0
 				for convex_mesh in data.convex_meshes:
 					var collision_instance := CollisionShape3D.new()
 					collision_instance.shape = convex_mesh.create_convex_shape()
+					collision_instance.name = "CConvex%s"%count
 					_entities[entity].add_child(collision_instance)
+					count += 1
 			elif data.collision_mesh != null && entity.geometry_flags & QEntity.GeometryFlags.CONCAVE_COLLISIONS:
 				var collision_instance := CollisionShape3D.new()
 				collision_instance.shape = data.collision_mesh.create_trimesh_shape()
+				collision_instance.name = "CTrimesh"
 				_entities[entity].add_child(collision_instance)
 			if data.occluder != null && entity.geometry_flags & QEntity.GeometryFlags.OCCLUSION:
 				var occluder_instance := OccluderInstance3D.new()
 				occluder_instance.occluder = data.occluder
+				occluder_instance.name = "Occluder"
 				_entities[entity].add_child(occluder_instance)
 		add_child(node, true)
 
@@ -794,6 +800,7 @@ func _worldspawn_generation(properties: Dictionary[StringName, String], node: No
 				break
 		if !already_has_node:
 			world_env = WorldEnvironment.new()
+			world_env.name = "Enviroment"
 			node.add_child(world_env)
 		# Create [Environment] if none present
 		if world_env.environment == null: world_env.environment = Environment.new()
@@ -823,6 +830,7 @@ func _worldspawn_generation(properties: Dictionary[StringName, String], node: No
 				break
 		if !already_has_node:
 			dir_light = DirectionalLight3D.new()
+			dir_light.name = "Sunlight"
 			node.add_child(dir_light)
 		dir_light.light_bake_mode = Light3D.BAKE_STATIC
 		dir_light.light_energy = properties.get(settings.worldspawn_sunlight, settings.default_sunlight).to_float()
@@ -847,6 +855,7 @@ func _worldspawn_generation(properties: Dictionary[StringName, String], node: No
 		var skyname: String = properties.get(settings.worldspawn_skyname, settings.worldspawn_skyname)
 		if skyname != "":
 			var skybox_instance := MeshInstance3D.new()
+			skybox_instance.name = "Skybox"
 			skybox_instance.mesh = BoxMesh.new()
 			skybox_instance.mesh.flip_faces = true
 			skybox_instance.mesh.size = Vector3.ONE * settings.skybox_scale
