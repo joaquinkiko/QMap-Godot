@@ -197,18 +197,29 @@ func _create_entity_maps() -> void:
 		_entities[entity] = null
 		if entity.brushes.size() > 0:
 			var data := SolidData.new()
-			data.origin = entity.origin
+			data.origin = entity.origin * settings._scale_factor
 			for brush in entity.brushes:
 				var brush_data := SolidData.BrushData.new()
 				brush_data.is_origin = true
 				brush_data.is_trigger = true
-				brush_data.planes = brush.planes
 				for face in brush.faces:
 					var face_data := SolidData.FaceData.new()
 					face_data.texture = face.texturename
 					if face.texturename.to_lower() != settings.texture_origin.to_lower(): brush_data.is_origin = false
-					face_data.plane = face.plane
-					face_data.uv = face.uv
+					face_data.plane = Plane(
+						face.points[0] * settings._scale_factor,
+						face.points[1] * settings._scale_factor,
+						face.points[2] * settings._scale_factor
+						)
+					face_data.uv = Transform2D.IDENTITY
+					face_data.uv.origin = Vector2(face.u_offset.w, face.v_offset.w)
+					if face.format == QEntity.FaceFormat.STANDARD:
+						var r := deg_to_rad(face.rotation)
+						face_data.uv.x = Vector2(cos(r), -sin(r)) * face.uv_scale.x * settings._scale_factor
+						face_data.uv.y = Vector2(sin(r), cos(r)) * face.uv_scale.y * settings._scale_factor
+					else:
+						face_data.uv.x = Vector2.RIGHT * face.uv_scale.x * settings._scale_factor
+						face_data.uv.y = Vector2.DOWN * face.uv_scale.y * settings._scale_factor
 					face_data.uv_format = face.format
 					if face.format == QEntity.FaceFormat.VALVE_220:
 						face_data.u_axis = Vector3(
@@ -220,6 +231,7 @@ func _create_entity_maps() -> void:
 					face_data.surface_flag = face.surface_flag
 					face_data.content_flag = face.contents_flag
 					brush_data.faces.append(face_data)
+				for face_data in brush_data.faces: brush_data.planes.append(face_data.plane)
 				for face_data in brush_data.faces: face_data.is_trigger = brush_data.is_trigger
 				data.brushes.append(brush_data)
 			_solid_data[entity] = data
@@ -607,7 +619,7 @@ func _generate_meshes(index: int) -> void:
 				arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
 				arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
 				for i in face.indices:
-					arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor)
+					arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
 					arrays[Mesh.ARRAY_NORMAL].append(_convert_coordinates(face.normals[i]))
 					arrays[Mesh.ARRAY_TEX_UV].append(_get_tex_uv(face, face.vertices[i]))
 				if arrays[Mesh.ARRAY_VERTEX].size() > 0:
@@ -616,11 +628,11 @@ func _generate_meshes(index: int) -> void:
 					brush.mesh.surface_set_name(surface_index, face.texture)
 			if _should_collide(face.texture, entity.classname, face.surface_flag, face.content_flag):
 				for i in face.indices:
-					convex_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor)
+					convex_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
 			if _should_occlude(face.texture, entity.classname, face.surface_flag, face.content_flag):
 				if !_alphatests[face.texture] && use_occlusion_culling:
 					for i in face.indices:
-						occlusion_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor)
+						occlusion_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
 		if brush.mesh.get_surface_count() == 0: brush.mesh = null
 		if convex_arrays[Mesh.ARRAY_VERTEX].size() > 0:
 			brush.collision_mesh = ArrayMesh.new()
@@ -780,9 +792,9 @@ func _pass_to_scene_tree() -> void:
 		node.name = entity.classname.capitalize().replace(" ", "")
 		# Apply position, rotation, and scale modifications
 		if data != null:
-			node.set(&"position", _convert_coordinates(data.origin) * settings._scale_factor)
+			node.set(&"position", _convert_coordinates(data.origin))
 		else:
-			node.set(&"position", _convert_coordinates(entity.origin) * settings._scale_factor)
+			node.set(&"position", _convert_coordinates(entity.origin * settings._scale_factor))
 			node.set(&"rotation_degrees", entity.angle)
 			var current_scale = node.get(&"scale")
 			if current_scale != null: node.set(&"scale", current_scale * entity.scale)
