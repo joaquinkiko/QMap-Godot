@@ -3,6 +3,9 @@
 ## [url]https://1666186240-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2F-LtVT8pJjInrrHVCovzy%2Fuploads%2FEukkFYJLwfafFXUMpsI2%2FMAPFiles_2001_StefanHajnoczi.pdf?alt=media&token=51471685-bf69-42ae-a015-a474c0b95165[/url]
 class_name MapLoader extends Node3D
 
+const VERTEX_MERGE_DISTANCE := 3e-03
+const HYPERPLANE_SIZE := 512.0
+
 ## Data used for building geometry
 class SolidData extends RefCounted:
 	class BrushData extends RefCounted:
@@ -432,73 +435,53 @@ func _generate_solid_data(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
 	var data: SolidData = _solid_data[entity]
 	if data == null: return
-	for brush in data.brushes:
-		# Find all brush vertices
-		var vertices := Geometry3D.compute_convex_mesh_points(brush.planes)
+	for brush in data.brushes: for face in brush.faces:
 		# Find vertices
-		for face in brush.faces:
-			for vertex in vertices:
-				if face.plane.has_point(vertex, 1e-04):
-					face.vertices.append(vertex)
-			# Sort vertices
-			if face.vertices.size() < 3: continue
-			var center: Vector3
-			for vertex in face.vertices: center += vertex
-			center /= face.vertices.size()
-			var u_axis: Vector3
-			if face.vertices.size() >= 2:
-				u_axis = (face.vertices[1] - face.vertices[0]).normalized()
-			var v_axis: Vector3 = u_axis.cross(face.plane.normal).normalized()
-			var cmp_winding_angle: Callable = (
-				func(a: Vector3, b: Vector3) -> bool:
-					var dir_a: Vector3 = a - center
-					var dir_b: Vector3 = b - center
-					var angle_a: float = atan2(dir_a.dot(v_axis), dir_a.dot(u_axis))
-					var angle_b: float = atan2(dir_b.dot(v_axis), dir_b.dot(u_axis))
-					return angle_a < angle_b
-			)
-			var _vertices: Array[Vector3]
-			_vertices.assign(face.vertices)
-			_vertices.sort_custom(cmp_winding_angle)
-			face.vertices = _vertices
+		var v_up := Vector3.UP
+		if abs(face.plane.normal.dot(v_up)) > 0.9: v_up = Vector3.RIGHT
+		var right := face.plane.normal.cross(v_up).normalized()
+		var forward := right.cross(face.plane.normal).normalized()
+		var centroid := face.plane.get_center()
+		face.vertices.append(centroid + (right *  HYPERPLANE_SIZE) + (forward *  HYPERPLANE_SIZE))
+		face.vertices.append(centroid + (right * -HYPERPLANE_SIZE) + (forward *  HYPERPLANE_SIZE))
+		face.vertices.append(centroid + (right * -HYPERPLANE_SIZE) + (forward * -HYPERPLANE_SIZE))
+		face.vertices.append(centroid + (right *  HYPERPLANE_SIZE) + (forward * -HYPERPLANE_SIZE))
+		for other_face in brush.faces:
+			if other_face == face: continue
+			face.vertices = Geometry3D.clip_polygon(face.vertices, other_face.plane)
+			if face.vertices.is_empty(): break
+		# Merge adjacent vertices
+		var merged_vertices: PackedVector3Array
+		var prev_vertex := face.vertices[0].snappedf(VERTEX_MERGE_DISTANCE)
+		merged_vertices.append(prev_vertex)
+		for i in range(1, face.vertices.size()):
+			var vertex := face.vertices[i].snappedf(VERTEX_MERGE_DISTANCE)
+			if prev_vertex != vertex: merged_vertices.append(vertex)
+			prev_vertex = vertex
+		face.vertices = merged_vertices
+		# Sort vertices
+		var center: Vector3
+		for vertex in face.vertices: center += vertex
+		center /= face.vertices.size()
+		var u_axis: Vector3
+		if face.vertices.size() >= 2:
+			u_axis = (face.vertices[1] - face.vertices[0]).normalized()
+		var v_axis: Vector3 = u_axis.cross(face.plane.normal).normalized()
+		var cmp_winding_angle: Callable = (
+			func(a: Vector3, b: Vector3) -> bool:
+				var dir_a: Vector3 = a - center
+				var dir_b: Vector3 = b - center
+				var angle_a: float = atan2(dir_a.dot(v_axis), dir_a.dot(u_axis))
+				var angle_b: float = atan2(dir_b.dot(v_axis), dir_b.dot(u_axis))
+				return angle_a < angle_b
+		)
+		var _vertices: Array[Vector3]
+		_vertices.assign(face.vertices)
+		_vertices.sort_custom(cmp_winding_angle)
+		face.vertices = _vertices
 		# Generate normals
-		for face in brush.faces:
-			face.normals.resize(face.vertices.size())
-			face.normals.fill(face.plane.normal)
-		# Generate tangents
-		for face in brush.faces:
-			var tangent: PackedFloat32Array
-			if face.uv_format == QEntity.FaceFormat.VALVE_220:
-				var v_sign: float = -signf(face.plane.normal.cross(face.u_axis).dot(face.v_axis))
-				tangent = [face.u_axis.x, face.u_axis.y, face.u_axis.z, v_sign]
-			else: # Standard
-				var dx := face.plane.normal.dot(Vector3.BACK)
-				var dy := face.plane.normal.dot(Vector3.UP)
-				var dz := face.plane.normal.dot(Vector3.RIGHT)
-				var dxa := absf(dx)
-				var dya := absf(dy)
-				var dza := absf(dz)
-				var u_axis: Vector3
-				var v_sign: float = 0.0
-				if dya >= dxa and dya >= dza:
-					u_axis = Vector3.RIGHT
-					v_sign = signf(dy)
-				elif dxa >= dya and dxa >= dza:
-					u_axis = Vector3.RIGHT
-					v_sign = -signf(dx)
-				elif dza >= dya and dza >= dxa:
-					u_axis = Vector3.UP
-					v_sign = signf(dz)
-				v_sign *= signf(face.uv.get_scale().y)
-				u_axis = u_axis.rotated(face.plane.normal, deg_to_rad(-face.uv.get_rotation()) * v_sign)
-				tangent = [u_axis.x, u_axis.y, u_axis.z, v_sign]
-			# Translate to Y Z X W coordinates
-			for vertex in face.vertices:
-				face.tangents.append(tangent[1])
-				face.tangents.append(tangent[2])
-				face.tangents.append(tangent[0])
-				face.tangents.append(tangent[3])
-			
+		face.normals.resize(face.vertices.size())
+		face.normals.fill(face.plane.normal)
 
 ## Calculate solid entity origins
 func _calculate_origins(index: int) -> void:
