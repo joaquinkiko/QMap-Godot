@@ -175,7 +175,7 @@ func get_non_occluding_textures() -> PackedStringArray:
 	var output: PackedStringArray
 	for tag in smart_tags:
 		if tag.match_type != QMapSmartTag.MatchType.MATERIAL: continue
-		if tag.properties & QMapSmartTag.SmartProperties.NON_OCCLUDING || tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
+		if tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
 			output.append(tag.pattern)
 	return output
 
@@ -184,7 +184,7 @@ func get_non_occluding_entities() -> PackedStringArray:
 	var output: PackedStringArray
 	for tag in smart_tags:
 		if tag.match_type != QMapSmartTag.MatchType.CLASSNAME: continue
-		if tag.properties & QMapSmartTag.SmartProperties.NON_OCCLUDING || tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
+		if tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
 			output.append(tag.pattern)
 	return output
 
@@ -193,7 +193,7 @@ func get_non_occluding_surfaces() -> PackedInt32Array:
 	var output: PackedInt32Array
 	for tag in smart_tags:
 		if tag.match_type != QMapSmartTag.MatchType.SURFACE_FLAG: continue
-		if tag.properties & QMapSmartTag.SmartProperties.NON_OCCLUDING || tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
+		if tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
 			output.append(find_content_flag(tag.pattern))
 	return output
 
@@ -202,7 +202,7 @@ func get_non_occluding_content() -> PackedInt32Array:
 	var output: PackedInt32Array
 	for tag in smart_tags:
 		if tag.match_type != QMapSmartTag.MatchType.CONTENT_FLAG: continue
-		if tag.properties & QMapSmartTag.SmartProperties.NON_OCCLUDING || tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
+		if tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
 			output.append(find_content_flag(tag.pattern))
 	return output
 
@@ -276,6 +276,15 @@ func get_non_pathfinding_content() -> PackedInt32Array:
 		if tag.match_type != QMapSmartTag.MatchType.CONTENT_FLAG: continue
 		if tag.properties & QMapSmartTag.SmartProperties.NON_PATHFINDING:
 			output.append(find_content_flag(tag.pattern))
+	return output
+
+## Returns list of convex classname patterns
+func get_convex_entities() -> PackedStringArray:
+	var output: PackedStringArray
+	for tag in smart_tags:
+		if tag.match_type != QMapSmartTag.MatchType.CLASSNAME: continue
+		if tag.properties & QMapSmartTag.SmartProperties.ENFORCE_CONVEX:
+			output.append(tag.pattern)
 	return output
 
 ## Returns matching content flag's value, or 0 if the flag doesn't exist

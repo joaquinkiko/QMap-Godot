@@ -8,5 +8,5 @@ name = &"Null"
 match_type = 0
 pattern = "null"
 default_texture = &""
-properties = 25
+properties = 9
 metadata/_custom_type_script = "uid://b4wvhedbwsrlj"

@@ -19,8 +19,8 @@ enum SmartProperties{
 	NON_PATHFINDING = 	0b00100,
 	## Don't generate mesh (Make sure to also set [enum SmartProperties.TRANSPARENT])
 	NON_RENDERED = 		0b01000,
-	## Don't generate occlusion (like [enum SmartProperties.TRANSPARENT], but no visual effect in map editors)
-	NON_OCCLUDING = 	0b10000
+	## Enforces convex collisions (Only effective on [enum MatchType.CLASSNAME])
+	ENFORCE_CONVEX = 	0b10000
 }
 ## Editor tag name
 @export var name: StringName
@@ -36,7 +36,7 @@ enum SmartProperties{
 	"Non-colliding:%s"%SmartProperties.NON_COLLIDING,
 	"Non-pathfinding:%s"%SmartProperties.NON_PATHFINDING,
 	"Non-rendered:%s"%SmartProperties.NON_RENDERED,
-	"Non-occluding:%s"%SmartProperties.NON_OCCLUDING
+	"Enforce Convex:%s"%SmartProperties.ENFORCE_CONVEX
 	)
 var properties: int
 ## Overriders [member default_material] for this surface or entity
@@ -47,3 +47,5 @@ func _init(_name := &"", _match := 0, _pattern := "", _texture := &"", _properti
 	pattern = _pattern
 	default_texture = _texture
 	properties = _properties
+
+func _to_string() -> String: return "%s(T:%s P:'%s' F:%s)"%[name, match_type, pattern, properties]

@@ -10,6 +10,10 @@ class SolidData extends RefCounted:
 		var planes: Array[Plane]
 		var is_origin: bool
 		var is_trigger: bool
+		var mesh: ArrayMesh
+		var collision_meshes: Array[ArrayMesh]
+		var occlusion_meshes: Array[ArrayMesh]
+		var sorted_faces: Dictionary[StringName, Array]
 	class FaceData extends RefCounted:
 		var plane: Plane
 		var uv: Transform2D
@@ -276,6 +280,7 @@ func _generate_materials(index: int) -> void:
 			material.set("heightmap_enabled", true)
 			material.set("heightmap_texture", pbr_texture)
 	## Set material
+	material.set_meta(&"texturename", texturename)
 	_materials[texturename] = material
 
 ## Find either texture or animated texture
@@ -573,6 +578,7 @@ func _sort_faces(index: int) -> void:
 		for key in texture_faces.keys():
 			if data.sorted_faces.has(key): data.sorted_faces[key].append_array(texture_faces[key])
 			else: data.sorted_faces[key] = texture_faces[key]
+		brush.sorted_faces = texture_faces
 
 ## Generate meshes
 func _generate_meshes(index: int) -> void:
@@ -581,88 +587,44 @@ func _generate_meshes(index: int) -> void:
 	var use_occlusion_culling: bool = ProjectSettings.get_setting("rendering/occlusion_culling/use_occlusion_culling", false)
 	if data == null: return
 	var arrays: Array
+	var convex_arrays: Array
+	var occlusion_arrays: Array
 	arrays.resize(Mesh.ARRAY_MAX)
-	var arrays_collision: Array
-	var arrays_shadow: Array
-	arrays_collision.resize(Mesh.ARRAY_MAX)
-	arrays_shadow.resize(Mesh.ARRAY_MAX)
-	data.render_mesh = ArrayMesh.new()
-	data.collision_mesh = ArrayMesh.new()
-	var shadow_mesh = ArrayMesh.new()
-	var occluder_vertices: PackedVector3Array
-	var occluder_indices: PackedInt32Array
-	arrays_collision[Mesh.ARRAY_VERTEX] = PackedVector3Array()
-	arrays_shadow[Mesh.ARRAY_VERTEX] = PackedVector3Array()
-	var texturenames: Array[StringName] = data.sorted_faces.keys()
-	texturenames.sort()
-	for texture in texturenames:
-		if _is_render_texture(texture) && _is_render_class(entity.classname):
-			var render_surface := data.render_mesh.get_surface_count()
-			if render_surface == RenderingServer.MAX_MESH_SURFACES:
-				printerr("Cannot render additional mesh surfaces on %s!"%entity.classname)
-				continue
-			arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
-			arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
-			arrays[Mesh.ARRAY_TANGENT] = PackedFloat32Array()
-			arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
-			#arrays[Mesh.ARRAY_COLOR] = PackedColorArray()
-			for face in data.sorted_faces[texture]:
-				if !_is_render_content_flag(face.content_flag) || !_is_render_surface_flag(face.surface_flag): continue
-				for i in face.indices:
-					arrays[Mesh.ARRAY_VERTEX].append(
-						_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor
-						)
-					arrays[Mesh.ARRAY_NORMAL].append(_convert_coordinates(face.normals[i]))
-					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4])
-					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 1])
-					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 2])
-					arrays[Mesh.ARRAY_TANGENT].append(face.tangents[i * 4 + 3])
-					arrays[Mesh.ARRAY_TEX_UV].append(_get_tex_uv(face, face.vertices[i]))
-					if use_occlusion_culling && !_alphatests.get(texture, false):
-						var vertex: Vector3 = arrays[Mesh.ARRAY_VERTEX][arrays[Mesh.ARRAY_VERTEX].size() - 1]
-						var occluder_index := occluder_vertices.find(vertex)
-						if occluder_index == -1:
-							occluder_index = occluder_vertices.size()
-							occluder_vertices.append(vertex)
-						occluder_indices.append(occluder_index)
-			if arrays[Mesh.ARRAY_VERTEX].size() > 0:
-				data.render_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-				data.render_mesh.surface_set_material(render_surface, _materials[texture])
-				data.render_mesh.surface_set_name(render_surface, texture)
-				arrays_shadow[Mesh.ARRAY_VERTEX] = arrays[Mesh.ARRAY_VERTEX]
-				shadow_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays_shadow)
-		for face in data.sorted_faces[texture]:
-			for i in face.indices:
-				arrays_collision[Mesh.ARRAY_VERTEX].append(
-					_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor
-					)
-	if arrays_collision[Mesh.ARRAY_VERTEX].size() > 0:
-		data.collision_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays_collision)
-	else:
-		data.collision_mesh = null
-	if data.render_mesh.get_surface_count() > 0:
-		data.render_mesh.shadow_mesh = shadow_mesh
-	else:
-		data.render_mesh = null
-	if use_occlusion_culling && occluder_vertices.size() > 0:
-		data.occluder = ArrayOccluder3D.new()
-		data.occluder.set_arrays(occluder_vertices, occluder_indices)
-	else:
-		data.occluder == null
-	# Generate convex trigger meshes
+	convex_arrays.resize(Mesh.ARRAY_MAX)
+	occlusion_arrays.resize(Mesh.ARRAY_MAX)
 	for brush in data.brushes:
-		var convex_mesh := ArrayMesh.new()
-		var convex_arrays: Array
-		convex_arrays.resize(Mesh.ARRAY_MAX)
+		brush.mesh = ArrayMesh.new()
 		convex_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+		occlusion_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		for face in brush.faces:
-			for i in face.indices:
-				convex_arrays[Mesh.ARRAY_VERTEX].append(
-					_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor
-					)
+			if _should_render(face.texture, entity.classname, face.surface_flag, face.content_flag):
+				var surface_index := brush.mesh.get_surface_count()
+				if surface_index == RenderingServer.MAX_MESH_SURFACES: continue
+				arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+				arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
+				arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
+				for i in face.indices:
+					arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor)
+					arrays[Mesh.ARRAY_NORMAL].append(_convert_coordinates(face.normals[i]))
+					arrays[Mesh.ARRAY_TEX_UV].append(_get_tex_uv(face, face.vertices[i]))
+				if arrays[Mesh.ARRAY_VERTEX].size() > 0:
+					brush.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+					brush.mesh.surface_set_material(surface_index, _materials[face.texture])
+					brush.mesh.surface_set_name(surface_index, face.texture)
+			if _should_collide(face.texture, entity.classname, face.surface_flag, face.content_flag):
+				for i in face.indices:
+					convex_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor)
+			if _should_occlude(face.texture, entity.classname, face.surface_flag, face.content_flag):
+				if !_alphatests[face.texture] && use_occlusion_culling:
+					for i in face.indices:
+						occlusion_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor)
+		if brush.mesh.get_surface_count() == 0: brush.mesh = null
 		if convex_arrays[Mesh.ARRAY_VERTEX].size() > 0:
-			convex_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, convex_arrays)
-			data.convex_meshes.append(convex_mesh)
+			brush.collision_meshes.append(ArrayMesh.new())
+			brush.collision_meshes[brush.collision_meshes.size() - 1].add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, convex_arrays)
+		if occlusion_arrays[Mesh.ARRAY_VERTEX].size() > 0:
+			brush.occlusion_meshes.append(ArrayMesh.new())
+			brush.occlusion_meshes[brush.collision_meshes.size() - 1].add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, occlusion_arrays)
 
 ## Unrwaps render mesh UV for lightmapping
 func _unwrap_uvs(index: int) -> void:
@@ -701,6 +663,76 @@ func _is_render_content_flag(flag: int) -> bool:
 		if flag & pattern: return false
 	return true
 
+## Returns true if should be rendered based on texture, class, and flags
+func _should_render(texture: StringName, classname: String, surface: int, content: int) -> bool:
+	return _is_render_texture(texture) && _is_render_class(classname) && _is_render_surface_flag(surface) && _is_render_content_flag(content)
+
+## Returns true if texture should have collision
+func _is_collision_texture(texture: StringName) -> bool:
+	for pattern in settings.get_non_colliding_textures():
+		if texture.to_lower().match(pattern.to_lower()): return false
+	return true
+
+## Returns true if classname should have collision
+func _is_collision_class(classname: String) -> bool:
+	for pattern in settings.get_non_colliding_entities():
+		if classname.to_lower().match(pattern.to_lower()): return false
+	return true
+
+## Returns true if surface flag should have collision
+func _is_collision_surface_flag(flag: int) -> bool:
+	for pattern in settings.get_non_colliding_surfaces():
+		if pattern == 0: continue
+		if flag & pattern: return false
+	return true
+
+## Returns true if content flag should have collision
+func _is_collision_content_flag(flag: int) -> bool:
+	for pattern in settings.get_non_rendered_content():
+		if pattern == 0: continue
+		if flag & pattern: return false
+	return true
+
+## Returns true if should have collision based on texture, class, and flags
+func _should_collide(texture: StringName, classname: String, surface: int, content: int) -> bool:
+	return _is_collision_texture(texture) && _is_collision_class(classname) && _is_collision_surface_flag(surface) && _is_collision_content_flag(content)
+
+## Returns true if texture should have occlusion
+func _is_occluding_texture(texture: StringName) -> bool:
+	for pattern in settings.get_non_occluding_textures():
+		if texture.to_lower().match(pattern.to_lower()): return false
+	return true
+
+## Returns true if classname should have occlusion
+func _is_occluding_class(classname: String) -> bool:
+	for pattern in settings.get_non_occluding_entities():
+		if classname.to_lower().match(pattern.to_lower()): return false
+	return true
+
+## Returns true if surface flag should have occlusion
+func _is_occluding_surface_flag(flag: int) -> bool:
+	for pattern in settings.get_non_occluding_surfaces():
+		if pattern == 0: continue
+		if flag & pattern: return false
+	return true
+
+## Returns true if content flag should have occlusion
+func _is_occluding_content_flag(flag: int) -> bool:
+	for pattern in settings.get_non_occluding_content():
+		if pattern == 0: continue
+		if flag & pattern: return false
+	return true
+
+## Returns true if should have occlusion based on texture, class, and flags
+func _should_occlude(texture: StringName, classname: String, surface: int, content: int) -> bool:
+	return _is_occluding_texture(texture) && _is_occluding_class(classname) && _is_occluding_surface_flag(surface) && _is_occluding_content_flag(content)
+
+## Returns true if classname should generate convex collisions
+func _is_convex_class(classname: String) -> bool:
+	for pattern in settings.get_convex_entities():
+		if classname.to_lower().match(pattern.to_lower()): return true
+	return false
+
 func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 	var tex_uv := Vector2.ONE
 	var texture_size: Vector2 = _texture_sizes[face.texture]
@@ -728,6 +760,10 @@ func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 	return tex_uv
 
 func _pass_to_scene_tree() -> void:
+	var csg_to_compile: Dictionary[Node, CSGCombiner3D]
+	var collision_csg_to_compile: Dictionary[Node, CSGCombiner3D]
+	var occlusion_csg_to_compile: Dictionary[Node, CSGCombiner3D]
+	var node_entities: Dictionary[Node, QEntity]
 	# Find worldspawn and apply special properties
 	for entity: QEntity in _entities.keys():
 		if entity.classname == "worldspawn":
@@ -737,6 +773,7 @@ func _pass_to_scene_tree() -> void:
 	for entity: QEntity in _entities.keys():
 		var data: SolidData = _solid_data[entity]
 		var node := _entities[entity]
+		node_entities[node] = entity
 		node.name = entity.classname.capitalize().replace(" ", "")
 		# Apply position, rotation, and scale modifications
 		if data != null:
@@ -761,30 +798,92 @@ func _pass_to_scene_tree() -> void:
 			node.call(&"_apply_map_properties", parsed_properties)
 		# Add mesh
 		if data != null:
-			if data.render_mesh != null && entity.geometry_flags & QEntity.GeometryFlags.RENDER:
-				var mesh_instance := MeshInstance3D.new()
-				mesh_instance.mesh = data.render_mesh
-				mesh_instance.name = "RenderMesh"
-				_entities[entity].add_child(mesh_instance)
-			if data.convex_meshes.size() > 0  && entity.geometry_flags & QEntity.GeometryFlags.CONVEX_COLLISIONS:
-				var count: int = 0
-				for convex_mesh in data.convex_meshes:
-					var collision_instance := CollisionShape3D.new()
-					collision_instance.shape = convex_mesh.create_convex_shape()
-					collision_instance.name = "CConvex%s"%count
-					_entities[entity].add_child(collision_instance)
-					count += 1
-			elif data.collision_mesh != null && entity.geometry_flags & QEntity.GeometryFlags.CONCAVE_COLLISIONS:
-				var collision_instance := CollisionShape3D.new()
-				collision_instance.shape = data.collision_mesh.create_trimesh_shape()
-				collision_instance.name = "CTrimesh"
-				_entities[entity].add_child(collision_instance)
-			if data.occluder != null && entity.geometry_flags & QEntity.GeometryFlags.OCCLUSION:
-				var occluder_instance := OccluderInstance3D.new()
-				occluder_instance.occluder = data.occluder
-				occluder_instance.name = "Occluder"
-				_entities[entity].add_child(occluder_instance)
+			# Render
+			if entity.geometry_flags & QEntity.GeometryFlags.RENDER:
+				var csg_combiner := CSGCombiner3D.new()
+				for brush in data.brushes:
+					if brush.mesh == null: continue
+					var csg_mesh := CSGMesh3D.new()
+					csg_mesh.mesh = brush.mesh
+					csg_combiner.add_child(csg_mesh)
+				if csg_combiner.get_child_count() > 0:
+					node.add_child(csg_combiner)
+					csg_to_compile.set(node, csg_combiner)
+				else: csg_combiner.queue_free()
+			# Collision
+			if entity.geometry_flags & QEntity.GeometryFlags.CONVEX_COLLISIONS || _is_convex_class(entity.classname):
+				var brush_id: int
+				for brush in data.brushes:
+					for mesh in brush.collision_meshes:
+						var collision_shape := CollisionShape3D.new()
+						collision_shape.debug_color = node_entities[node].get_debug_color(settings.fgd)
+						collision_shape.shape = mesh.create_convex_shape()
+						collision_shape.name = "ConvexCollision%s"%brush_id
+						node.add_child(collision_shape)
+						brush_id += 1
+			elif entity.geometry_flags & QEntity.GeometryFlags.CONCAVE_COLLISIONS:
+				var csg_combiner := CSGCombiner3D.new()
+				for brush in data.brushes: for mesh in brush.collision_meshes:
+					var csg_mesh := CSGMesh3D.new()
+					csg_mesh.mesh = mesh
+					csg_combiner.add_child(csg_mesh)
+				if csg_combiner.get_child_count() > 0:
+					node.add_child(csg_combiner)
+					collision_csg_to_compile.set(node, csg_combiner)
+				else: csg_combiner.queue_free()
+			# Occlusion
+			if entity.geometry_flags & QEntity.GeometryFlags.OCCLUSION:
+				var csg_combiner := CSGCombiner3D.new()
+				for brush in data.brushes: for mesh in brush.occlusion_meshes:
+					var csg_mesh := CSGMesh3D.new()
+					csg_mesh.mesh = mesh
+					csg_combiner.add_child(csg_mesh)
+				if csg_combiner.get_child_count() > 0:
+					node.add_child(csg_combiner)
+					occlusion_csg_to_compile.set(node, csg_combiner)
+				else: csg_combiner.queue_free()
 		add_child(node, true)
+	# Compile CSG after allowing a frame for it to calculate
+	await get_tree().process_frame
+	# Render
+	for node in csg_to_compile.keys():
+		var mesh_instance := MeshInstance3D.new()
+		mesh_instance.name = "Mesh"
+		mesh_instance.mesh = csg_to_compile[node].bake_static_mesh()
+		var shadow_mesh := ArrayMesh.new()
+		var shadow_arrays: Array
+		shadow_arrays.resize(Mesh.ARRAY_MAX)
+		for n in mesh_instance.mesh.get_surface_count():
+			shadow_arrays[Mesh.ARRAY_VERTEX] = mesh_instance.mesh.surface_get_arrays(n)[Mesh.ARRAY_VERTEX]
+			shadow_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, shadow_arrays)
+			var texturename: String = mesh_instance.mesh.surface_get_material(n).get_meta(&"texturename", "")
+			mesh_instance.mesh.surface_set_name(n, texturename)
+		mesh_instance.mesh.shadow_mesh = shadow_mesh
+		node.add_child(mesh_instance)
+		csg_to_compile[node].queue_free()
+	# Collision
+	for node in collision_csg_to_compile.keys():
+		var collision_shape := CollisionShape3D.new()
+		collision_shape.debug_color = node_entities[node].get_debug_color(settings.fgd)
+		collision_shape.debug_fill = false
+		collision_shape.name = "TrimeshCollision"
+		collision_shape.shape = collision_csg_to_compile[node].bake_static_mesh().create_trimesh_shape()
+		node.add_child(collision_shape)
+		collision_csg_to_compile[node].queue_free()
+	# Occlusion
+	for node in occlusion_csg_to_compile.keys():
+		var occluder_instance := OccluderInstance3D.new()
+		occluder_instance.name = "Occluder"
+		var array_occluder := ArrayOccluder3D.new()
+		var array_mesh := occlusion_csg_to_compile[node].bake_static_mesh()
+		var vertices := array_mesh.get_faces()
+		var indices: PackedInt32Array
+		indices.resize(vertices.size())
+		for v in vertices.size(): indices[v] = v
+		array_occluder.set_arrays(vertices, indices)
+		occluder_instance.occluder = array_occluder
+		node.add_child(occluder_instance)
+		occlusion_csg_to_compile[node].queue_free()
 
 ## Generate special worldspawn node properties
 func _worldspawn_generation(properties: Dictionary[StringName, String], node: Node) -> void:

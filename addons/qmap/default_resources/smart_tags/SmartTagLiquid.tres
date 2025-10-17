@@ -8,5 +8,5 @@ name = &"Liquid"
 match_type = 0
 pattern = "\\**"
 default_texture = &""
-properties = 17
+properties = 1
 metadata/_custom_type_script = "uid://b4wvhedbwsrlj"

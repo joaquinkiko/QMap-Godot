@@ -265,3 +265,9 @@ func get_parsed_properties(settings: QMapSettings, mods := PackedStringArray([])
 			_: value = raw_value
 		parsed_properties.set(key, value)
 	return parsed_properties
+
+## Returns entities debug color based on provided FGD
+func get_debug_color(fgd: FGD) -> Color:
+	var fgd_class: FGDClass = fgd.classes.get(classname)
+	if fgd_class == null: return Color.MAGENTA
+	return fgd_class.color

@@ -8,5 +8,5 @@ name = &"Hint"
 match_type = 0
 pattern = "hint*"
 default_texture = &""
-properties = 27
+properties = 11
 metadata/_custom_type_script = "uid://b4wvhedbwsrlj"
