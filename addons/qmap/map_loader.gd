@@ -11,8 +11,8 @@ class SolidData extends RefCounted:
 		var is_origin: bool
 		var is_trigger: bool
 		var mesh: ArrayMesh
-		var collision_meshes: Array[ArrayMesh]
-		var occlusion_meshes: Array[ArrayMesh]
+		var collision_mesh: ArrayMesh
+		var occlusion_mesh: ArrayMesh
 		var sorted_faces: Dictionary[StringName, Array]
 		func _to_string() -> String: return "BrushData(F: %s)"%faces.size()
 	class FaceData extends RefCounted:
@@ -623,11 +623,11 @@ func _generate_meshes(index: int) -> void:
 						occlusion_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin) * settings._scale_factor)
 		if brush.mesh.get_surface_count() == 0: brush.mesh = null
 		if convex_arrays[Mesh.ARRAY_VERTEX].size() > 0:
-			brush.collision_meshes.append(ArrayMesh.new())
-			brush.collision_meshes[brush.collision_meshes.size() - 1].add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, convex_arrays)
+			brush.collision_mesh = ArrayMesh.new()
+			brush.collision_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, convex_arrays)
 		if occlusion_arrays[Mesh.ARRAY_VERTEX].size() > 0:
-			brush.occlusion_meshes.append(ArrayMesh.new())
-			brush.occlusion_meshes[brush.occlusion_meshes.size() - 1].add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, occlusion_arrays)
+			brush.occlusion_mesh = ArrayMesh.new()
+			brush.occlusion_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, occlusion_arrays)
 
 ## Unrwaps render mesh UV for lightmapping
 func _unwrap_uvs(index: int) -> void:
@@ -817,18 +817,17 @@ func _pass_to_scene_tree() -> void:
 			if entity.geometry_flags & QEntity.GeometryFlags.CONVEX_COLLISIONS || _is_convex_class(entity.classname):
 				var brush_id: int
 				for brush in data.brushes:
-					for mesh in brush.collision_meshes:
-						var collision_shape := CollisionShape3D.new()
-						collision_shape.debug_color = node_entities[node].get_debug_color(settings.fgd)
-						collision_shape.shape = mesh.create_convex_shape()
-						collision_shape.name = "ConvexCollision%s"%brush_id
-						node.add_child(collision_shape)
-						brush_id += 1
+					var collision_shape := CollisionShape3D.new()
+					collision_shape.debug_color = node_entities[node].get_debug_color(settings.fgd)
+					collision_shape.shape = brush.collision_mesh.create_convex_shape()
+					collision_shape.name = "ConvexCollision%s"%brush_id
+					node.add_child(collision_shape)
+					brush_id += 1
 			elif entity.geometry_flags & QEntity.GeometryFlags.CONCAVE_COLLISIONS:
 				var csg_combiner := CSGCombiner3D.new()
-				for brush in data.brushes: for mesh in brush.collision_meshes:
+				for brush in data.brushes:
 					var csg_mesh := CSGMesh3D.new()
-					csg_mesh.mesh = mesh
+					csg_mesh.mesh = brush.collision_mesh
 					csg_combiner.add_child(csg_mesh)
 				if csg_combiner.get_child_count() > 0:
 					node.add_child(csg_combiner)
@@ -837,9 +836,9 @@ func _pass_to_scene_tree() -> void:
 			# Occlusion
 			if entity.geometry_flags & QEntity.GeometryFlags.OCCLUSION:
 				var csg_combiner := CSGCombiner3D.new()
-				for brush in data.brushes: for mesh in brush.occlusion_meshes:
+				for brush in data.brushes:
 					var csg_mesh := CSGMesh3D.new()
-					csg_mesh.mesh = mesh
+					csg_mesh.mesh = brush.occlusion_mesh
 					csg_combiner.add_child(csg_mesh)
 				if csg_combiner.get_child_count() > 0:
 					node.add_child(csg_combiner)
