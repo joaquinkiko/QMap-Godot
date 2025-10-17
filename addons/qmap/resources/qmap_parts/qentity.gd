@@ -271,3 +271,5 @@ func get_debug_color(fgd: FGD) -> Color:
 	var fgd_class: FGDClass = fgd.classes.get(classname)
 	if fgd_class == null: return Color.MAGENTA
 	return fgd_class.color
+
+func _to_string() -> String: return "%s(P:%s B:%s)"%[classname, properties.size(), brushes.size()]

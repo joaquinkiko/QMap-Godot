@@ -14,6 +14,7 @@ class SolidData extends RefCounted:
 		var collision_meshes: Array[ArrayMesh]
 		var occlusion_meshes: Array[ArrayMesh]
 		var sorted_faces: Dictionary[StringName, Array]
+		func _to_string() -> String: return "BrushData(F: %s)"%faces.size()
 	class FaceData extends RefCounted:
 		var plane: Plane
 		var uv: Transform2D
@@ -30,6 +31,7 @@ class SolidData extends RefCounted:
 		var is_trigger: bool
 		var surface_flag: int
 		var content_flag: int
+		func _to_string() -> String: return "%s(V:%s F:(%s %s))"%[texture, vertices.size(), surface_flag, content_flag]
 	var brushes: Array[BrushData]
 	var origin: Vector3
 	var render_mesh: ArrayMesh
@@ -37,6 +39,7 @@ class SolidData extends RefCounted:
 	var convex_meshes: Array[ArrayMesh]
 	var occluder: ArrayOccluder3D
 	var sorted_faces: Dictionary[StringName, Array]
+	func _to_string() -> String: return "SolidData(B: %s)"%brushes.size()
 
 ## Emitted at map loading stages (value from 0.0-1.0)
 signal progress(percentage: float, task: String)
