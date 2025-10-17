@@ -817,6 +817,7 @@ func _pass_to_scene_tree() -> void:
 			if entity.geometry_flags & QEntity.GeometryFlags.CONVEX_COLLISIONS || _is_convex_class(entity.classname):
 				var brush_id: int
 				for brush in data.brushes:
+					if brush.collision_mesh == null: continue
 					var collision_shape := CollisionShape3D.new()
 					collision_shape.debug_color = node_entities[node].get_debug_color(settings.fgd)
 					collision_shape.shape = brush.collision_mesh.create_convex_shape()
@@ -826,6 +827,7 @@ func _pass_to_scene_tree() -> void:
 			elif entity.geometry_flags & QEntity.GeometryFlags.CONCAVE_COLLISIONS:
 				var csg_combiner := CSGCombiner3D.new()
 				for brush in data.brushes:
+					if brush.collision_mesh == null: continue
 					var csg_mesh := CSGMesh3D.new()
 					csg_mesh.mesh = brush.collision_mesh
 					csg_combiner.add_child(csg_mesh)
@@ -837,6 +839,7 @@ func _pass_to_scene_tree() -> void:
 			if entity.geometry_flags & QEntity.GeometryFlags.OCCLUSION:
 				var csg_combiner := CSGCombiner3D.new()
 				for brush in data.brushes:
+					if brush.occlusion_mesh == null: continue
 					var csg_mesh := CSGMesh3D.new()
 					csg_mesh.mesh = brush.occlusion_mesh
 					csg_combiner.add_child(csg_mesh)
