@@ -624,7 +624,7 @@ func _generate_meshes(index: int) -> void:
 			brush.collision_meshes[brush.collision_meshes.size() - 1].add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, convex_arrays)
 		if occlusion_arrays[Mesh.ARRAY_VERTEX].size() > 0:
 			brush.occlusion_meshes.append(ArrayMesh.new())
-			brush.occlusion_meshes[brush.collision_meshes.size() - 1].add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, occlusion_arrays)
+			brush.occlusion_meshes[brush.occlusion_meshes.size() - 1].add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, occlusion_arrays)
 
 ## Unrwaps render mesh UV for lightmapping
 func _unwrap_uvs(index: int) -> void:
