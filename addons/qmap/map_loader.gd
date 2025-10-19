@@ -618,6 +618,7 @@ func _generate_meshes(index: int) -> void:
 				if !_alphatests[face.texture] && use_occlusion_culling:
 					for i in face.indices:
 						occlusion_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
+			else: print(face.texture)
 		if brush.mesh.get_surface_count() == 0: brush.mesh = null
 		if convex_arrays[Mesh.ARRAY_VERTEX].size() > 0:
 			brush.collision_mesh = ArrayMesh.new()
@@ -637,7 +638,7 @@ func _unwrap_uvs(index: int) -> void:
 func _is_render_texture(texture: StringName) -> bool:
 	if show_non_rendered_textures: return true
 	for pattern in settings.get_non_rendered_textures():
-		pattern = pattern.replace("/*", ASTRSK_ALT_CHAR)
+		pattern = pattern.replace("\\*", ASTRSK_ALT_CHAR)
 		if texture.to_lower().replace("*", ASTRSK_ALT_CHAR).match(pattern.to_lower()): return false
 	return true
 
@@ -671,7 +672,7 @@ func _should_render(texture: StringName, classname: String, surface: int, conten
 ## Returns true if texture should have collision
 func _is_collision_texture(texture: StringName) -> bool:
 	for pattern in settings.get_non_colliding_textures():
-		pattern = pattern.replace("/*", ASTRSK_ALT_CHAR)
+		pattern = pattern.replace("\\*", ASTRSK_ALT_CHAR)
 		if texture.to_lower().replace("*", ASTRSK_ALT_CHAR).match(pattern.to_lower()): return false
 	return true
 
@@ -702,7 +703,9 @@ func _should_collide(texture: StringName, classname: String, surface: int, conte
 ## Returns true if texture should have occlusion
 func _is_occluding_texture(texture: StringName) -> bool:
 	for pattern in settings.get_non_occluding_textures():
-		pattern = pattern.replace("/*", ASTRSK_ALT_CHAR)
+		print(pattern)
+		pattern = pattern.replace("\\*", ASTRSK_ALT_CHAR)
+		print(pattern)
 		if texture.to_lower().replace("*", ASTRSK_ALT_CHAR).match(pattern.to_lower()): return false
 	return true
 
