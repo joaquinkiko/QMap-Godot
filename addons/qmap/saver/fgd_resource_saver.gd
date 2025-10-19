@@ -40,13 +40,13 @@ func _save(resource: Resource, path: String, flags: int) -> Error:
 			file.store_string(") ")
 		# Write sizing if changed from default
 		if fgd.classes[key].sizing_type == FGDClass.SizingType.ONLY_POSITIVE:
-			if fgd.classes[key].positive_size != Vector3i.ZERO:
+			if fgd.classes[key].positive_size != Vector3i(16,16,16):
 				file.store_string("size(%s %s %s) "%[fgd.classes[key].positive_size.x, fgd.classes[key].positive_size.y, fgd.classes[key].positive_size.z])
 		else:
-			if fgd.classes[key].positive_size != Vector3i.ZERO || fgd.classes[key].negative_size != Vector3i.ZERO:
+			if fgd.classes[key].positive_size != Vector3i(16,16,16) || fgd.classes[key].negative_size != Vector3i.ZERO:
 				file.store_string("size(%s %s %s %s %s %s) "%[fgd.classes[key].negative_size.x, fgd.classes[key].negative_size.y, fgd.classes[key].negative_size.z, fgd.classes[key].positive_size.x, fgd.classes[key].positive_size.y, fgd.classes[key].positive_size.z])
 		# Write color if changed from default
-		if !fgd.classes[key].color != Color.MAGENTA:
+		if fgd.classes[key].color != Color.MAGENTA:
 			file.store_string("color(%s %s %s) "%[fgd.classes[key].color.r8, fgd.classes[key].color.g8, fgd.classes[key].color.b8])
 		# Write sprite if present
 		if !fgd.classes[key].icon_sprite.is_empty():
