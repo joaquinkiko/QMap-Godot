@@ -5,6 +5,8 @@ class_name MapLoader extends Node3D
 
 const VERTEX_MERGE_DISTANCE := 3e-03
 const HYPERPLANE_SIZE := 512.0
+## Replaces "*" in texturename and "/*" in glob patterns for for texturenames
+const ASTRSK_ALT_CHAR := "|"
 
 ## Data used for building geometry
 class SolidData extends RefCounted:
@@ -635,7 +637,8 @@ func _unwrap_uvs(index: int) -> void:
 func _is_render_texture(texture: StringName) -> bool:
 	if show_non_rendered_textures: return true
 	for pattern in settings.get_non_rendered_textures():
-		if texture.to_lower().match(pattern.to_lower()): return false
+		pattern = pattern.replace("/*", ASTRSK_ALT_CHAR)
+		if texture.to_lower().replace("*", ASTRSK_ALT_CHAR).match(pattern.to_lower()): return false
 	return true
 
 ## Returns true if classname should be rendered
@@ -668,7 +671,8 @@ func _should_render(texture: StringName, classname: String, surface: int, conten
 ## Returns true if texture should have collision
 func _is_collision_texture(texture: StringName) -> bool:
 	for pattern in settings.get_non_colliding_textures():
-		if texture.to_lower().match(pattern.to_lower()): return false
+		pattern = pattern.replace("/*", ASTRSK_ALT_CHAR)
+		if texture.to_lower().replace("*", ASTRSK_ALT_CHAR).match(pattern.to_lower()): return false
 	return true
 
 ## Returns true if classname should have collision
@@ -698,7 +702,8 @@ func _should_collide(texture: StringName, classname: String, surface: int, conte
 ## Returns true if texture should have occlusion
 func _is_occluding_texture(texture: StringName) -> bool:
 	for pattern in settings.get_non_occluding_textures():
-		if texture.to_lower().match(pattern.to_lower()): return false
+		pattern = pattern.replace("/*", ASTRSK_ALT_CHAR)
+		if texture.to_lower().replace("*", ASTRSK_ALT_CHAR).match(pattern.to_lower()): return false
 	return true
 
 ## Returns true if classname should have occlusion
