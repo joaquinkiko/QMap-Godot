@@ -455,14 +455,15 @@ func _generate_solid_data(index: int) -> void:
 			face.vertices = Geometry3D.clip_polygon(face.vertices, other_face.plane)
 			if face.vertices.is_empty(): break
 		# Merge adjacent vertices
-		var merged_vertices: PackedVector3Array
-		var prev_vertex := face.vertices[0].snappedf(VERTEX_MERGE_DISTANCE)
-		merged_vertices.append(prev_vertex)
-		for i in range(1, face.vertices.size()):
-			var vertex := face.vertices[i].snappedf(VERTEX_MERGE_DISTANCE)
-			if prev_vertex != vertex: merged_vertices.append(vertex)
-			prev_vertex = vertex
-		face.vertices = merged_vertices
+		if face.vertices.size() > 1:
+			var merged_vertices: PackedVector3Array
+			var prev_vertex := face.vertices[0].snappedf(VERTEX_MERGE_DISTANCE)
+			merged_vertices.append(prev_vertex)
+			for i in range(1, face.vertices.size()):
+				var vertex := face.vertices[i].snappedf(VERTEX_MERGE_DISTANCE)
+				if prev_vertex != vertex: merged_vertices.append(vertex)
+				prev_vertex = vertex
+			face.vertices = merged_vertices
 		# Sort vertices
 		var center: Vector3
 		for vertex in face.vertices: center += vertex
