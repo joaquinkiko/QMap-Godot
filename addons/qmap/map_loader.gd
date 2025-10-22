@@ -385,7 +385,9 @@ func _find_material(texturename: StringName) -> Material:
 			return ResourceLoader.load("%s/%s.%s"%[path, texture_filename, extension])
 	if settings.default_material != null:
 		return settings.default_material.duplicate()
-	return StandardMaterial3D.new()
+	var fallback_material := StandardMaterial3D.new()
+	fallback_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+	return fallback_material
 
 ## Detect Alphatest textures in [member _materials] (not thread safe)
 func _detect_alphatest(index: int) -> void:
