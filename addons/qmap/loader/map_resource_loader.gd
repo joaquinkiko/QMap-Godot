@@ -18,6 +18,8 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 	var is_in_header := true
 	var is_in_entity := false
 	var is_in_brush := false
+	var is_in_patch := false
+	var patch_depth: int = 0
 	var current_entity: QEntity
 	var current_brush: QEntity.Brush
 	var face_regex := RegEx.new()
@@ -48,7 +50,12 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 		# Check opening / closing bracket
 		match line:
 			"{":
-				if is_in_entity:
+				if is_in_patch:
+					patch_depth += 1
+				if is_in_brush:
+					is_in_patch = true
+					patch_depth = 0
+				elif is_in_entity:
 					is_in_brush = true
 					current_brush = QEntity.Brush.new()
 				else:
@@ -57,15 +64,21 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 					current_entity.properties.clear()
 				continue
 			"}":
-				if is_in_brush:
+				if is_in_patch:
+					if patch_depth > 0: patch_depth -= 1
+					else:
+						is_in_patch = false
+				elif is_in_brush:
 					is_in_brush = false
 					current_entity.brushes.append(current_brush)
 				elif is_in_entity:
 					is_in_entity = false
 					resource.entities.append(current_entity)
 				continue
+		# Parse patch
+		if is_in_patch: pass
 		# Parse face
-		if is_in_brush:
+		elif is_in_brush:
 			var face := QEntity.Face.new()
 			var matches := face_regex.search_all(line)
 			if matches.size() == 9:
