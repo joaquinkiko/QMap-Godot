@@ -172,8 +172,10 @@ func add_base_properties(fgd: FGD) -> void:
 ## parsed into their correct [Variant] types as defined by [param fgd]
 func get_parsed_properties(settings: QMapSettings, mods := PackedStringArray([])) -> Dictionary[StringName, Variant]:
 	var fgd_class: FGDClass = settings.fgd.classes.get(classname)
-	if fgd_class == null: return properties
 	var parsed_properties: Dictionary[StringName, Variant]
+	if fgd_class == null:
+		parsed_properties.assign(properties)
+		return parsed_properties
 	var to_parse: Dictionary[StringName, String]
 	for base in fgd_class.base_classes:
 		if !settings.fgd.classes.has(base): continue
