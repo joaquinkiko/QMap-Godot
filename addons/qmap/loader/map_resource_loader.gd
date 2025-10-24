@@ -134,8 +134,8 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 				face.uv.x = Vector2.RIGHT * face.uv_scale.x
 				face.uv.y = Vector2.DOWN * face.uv_scale.y
 			if face.has_surface_flags:
-				face.surface_flag = matches[9].get_string().to_int()
-				face.contents_flag = matches[10].get_string().to_int()
+				face.contents_flag = matches[9].get_string().to_int()
+				face.surface_flag = matches[10].get_string().to_int()
 				face.value = matches[11].get_string().to_int()
 			current_brush.faces.append(face)
 		# Parse property
