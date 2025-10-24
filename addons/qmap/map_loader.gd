@@ -52,8 +52,10 @@ class SolidData extends RefCounted:
 ## Emitted at map loading stages (value from 0.0-1.0)
 signal progress(percentage: float, task: String)
 
+## Path to [QMap] to load on [method load_map]
+@export_file("*.map") var map_path: String
 ## [QMap] to load on [method load_map]
-@export var map: QMap
+var map: QMap
 ## Settings to use for generation
 @export var settings: QMapSettings = preload("res://addons/qmap/default_resources/default_settings.tres")
 @export_group("Additional Settings")
@@ -115,15 +117,32 @@ func _convert_coordinates(vector: Vector3) -> Vector3:
 	return Vector3(vector.y, vector.z, vector.x)
 
 func load_map() -> Error:
-	if map == null:
-		printerr("Missing map to generate!")
+	if !ResourceLoader.exists(map_path):
+		if map_path.begins_with("uid://"):
+			printerr("Cannot find map to parse: %s"%ResourceUID.get_id_path(ResourceUID.text_to_id(map_path)))
+		else:
+			printerr("Cannot find map to parse: %s"%map_path)
 		return ERR_FILE_NOT_FOUND
 	if settings == null:
 		printerr("Missing MapSettings to generate with!")
 		return ERR_FILE_NOT_FOUND
 	var start_time := Time.get_ticks_msec()
-	if verbose: print("Generating map '%s'..."%map.resource_path)
-	progress.emit(0, "Initializing")
+	if verbose:
+		if map_path.begins_with("uid://"):
+			print("Generating map '%s'..."%ResourceUID.get_id_path(ResourceUID.text_to_id(map_path)))
+		else:
+			print("Generating map '%s'..."%map_path)
+	progress.emit(0, "Parsing map")
+	await _thread_individual_taks([
+			func():
+				map = ResourceLoader.load(map_path) as QMap
+				],
+			"Parsing map")
+	if map == null:
+		printerr("Unable to parse map!")
+		progress.emit(1, "Failed")
+		return ERR_FILE_NOT_FOUND
+	progress.emit(0.05, "Initializing")
 	clear_children()
 	await _thread_individual_taks([
 		_create_texture_map,
