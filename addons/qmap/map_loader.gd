@@ -46,6 +46,7 @@ class SolidData extends RefCounted:
 	var convex_meshes: Array[ArrayMesh]
 	var occluder: ArrayOccluder3D
 	var sorted_faces: Dictionary[StringName, Array]
+	var expected_surface_count: int
 	func _to_string() -> String: return "SolidData(B: %s)"%brushes.size()
 
 ## Emitted at map loading stages (value from 0.0-1.0)
@@ -632,17 +633,23 @@ func _sort_faces(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
 	var data: SolidData = _solid_data[entity]
 	if data == null: return
+	if !_is_render_class(entity.classname): return
+	var unique_surfaces: PackedStringArray
 	for brush in data.brushes:
 		if brush.is_origin: continue
 		var texture_faces: Dictionary[StringName, Array]
 		for face in brush.faces:
+			if !_is_render_texture(face.texture): continue
 			if face.override_texture.is_empty():
 				if !texture_faces.has(face.texture): texture_faces[face.texture] = []
 				texture_faces[face.texture].append(face)
+				if !unique_surfaces.has(face.texture): unique_surfaces.append(face.texture)
 			else:
 				if !texture_faces.has(face.override_texture): texture_faces[face.override_texture] = []
 				texture_faces[face.override_texture].append(face)
+				if !unique_surfaces.has(face.override_texture): unique_surfaces.append(face.override_texture)
 		brush.sorted_faces = texture_faces
+	data.expected_surface_count = unique_surfaces.size()
 
 ## Generate meshes
 func _generate_meshes(index: int) -> void:
@@ -871,23 +878,19 @@ func _pass_to_scene_tree() -> void:
 		if data != null:
 			# Render
 			if entity.geometry_flags & QEntity.GeometryFlags.RENDER:
-				var csg_combiner := CSGCombiner3D.new()
-				var unique_surfaces: PackedStringArray
-				for brush in data.brushes:
-					if brush.mesh == null: continue
-					for n in brush.mesh.get_surface_count():
-						if !unique_surfaces.has(brush.mesh.surface_get_name(n)):
-							unique_surfaces.append(brush.mesh.surface_get_name(n))
-					var csg_mesh := CSGMesh3D.new()
-					csg_mesh.mesh = brush.mesh
-					csg_combiner.add_child(csg_mesh)
-				if csg_combiner.get_child_count() > 0 && unique_surfaces.size() < RenderingServer.MAX_MESH_SURFACES:
-					node.add_child(csg_combiner)
-					csg_to_compile.set(node, csg_combiner)
-				elif unique_surfaces.size() >= RenderingServer.MAX_MESH_SURFACES:
-					print("\t\t-ERROR: Cannot render %s: too many surfaces (%s/%s)!"%[entity.classname, unique_surfaces.size(), RenderingServer.MAX_MESH_SURFACES])
-					csg_combiner.queue_free()
-				else: csg_combiner.queue_free()
+				if data.expected_surface_count >= RenderingServer.MAX_MESH_SURFACES:
+					print("\t\t-ERROR: Cannot render %s: too many surfaces (%s/%s)!"%[entity.classname, data.expected_surface_count, RenderingServer.MAX_MESH_SURFACES])
+				else:
+					var csg_combiner := CSGCombiner3D.new()
+					for brush in data.brushes:
+						if brush.mesh == null: continue
+						var csg_mesh := CSGMesh3D.new()
+						csg_mesh.mesh = brush.mesh
+						csg_combiner.add_child(csg_mesh)
+					if csg_combiner.get_child_count() > 0:
+						node.add_child(csg_combiner)
+						csg_to_compile.set(node, csg_combiner)
+					else: csg_combiner.queue_free()
 			# Collision
 			if entity.geometry_flags & QEntity.GeometryFlags.CONVEX_COLLISIONS || _is_convex_class(entity.classname):
 				var brush_id: int
