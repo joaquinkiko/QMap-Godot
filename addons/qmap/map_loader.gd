@@ -636,11 +636,12 @@ func _sort_faces(index: int) -> void:
 		if brush.is_origin: continue
 		var texture_faces: Dictionary[StringName, Array]
 		for face in brush.faces:
-			if !texture_faces.has(face.texture): texture_faces[face.texture] = []
-			texture_faces[face.texture].append(face)
-		for key in texture_faces.keys():
-			if data.sorted_faces.has(key): data.sorted_faces[key].append_array(texture_faces[key])
-			else: data.sorted_faces[key] = texture_faces[key]
+			if face.override_texture.is_empty():
+				if !texture_faces.has(face.texture): texture_faces[face.texture] = []
+				texture_faces[face.texture].append(face)
+			else:
+				if !texture_faces.has(face.override_texture): texture_faces[face.override_texture] = []
+				texture_faces[face.override_texture].append(face)
 		brush.sorted_faces = texture_faces
 
 ## Generate meshes
@@ -659,24 +660,25 @@ func _generate_meshes(index: int) -> void:
 		brush.mesh = ArrayMesh.new()
 		convex_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		occlusion_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+		for key in brush.sorted_faces:
+			var surface_index := brush.mesh.get_surface_count()
+			if surface_index == RenderingServer.MAX_MESH_SURFACES:
+				print("\t\t-ERROR: Cannot render brush in %s: too many surfaces (over %s)!"%[entity.classname, RenderingServer.MAX_MESH_SURFACES])
+				break
+			arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+			arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
+			arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
+			for face: SolidData.FaceData in brush.sorted_faces[key]:
+				if _should_render(face.texture, entity.classname, face.surface_flag, face.content_flag):
+					for i in face.indices:
+						arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
+						arrays[Mesh.ARRAY_NORMAL].append(_convert_coordinates(face.normals[i]))
+						arrays[Mesh.ARRAY_TEX_UV].append(_get_tex_uv(face, face.vertices[i]))
+			if arrays[Mesh.ARRAY_VERTEX].size() > 0:
+				brush.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+				brush.mesh.surface_set_material(surface_index, _materials[key])
+				brush.mesh.surface_set_name(surface_index, key)
 		for face in brush.faces:
-			if _should_render(face.texture, entity.classname, face.surface_flag, face.content_flag):
-				var surface_index := brush.mesh.get_surface_count()
-				arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
-				arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
-				arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
-				for i in face.indices:
-					arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
-					arrays[Mesh.ARRAY_NORMAL].append(_convert_coordinates(face.normals[i]))
-					arrays[Mesh.ARRAY_TEX_UV].append(_get_tex_uv(face, face.vertices[i]))
-				if arrays[Mesh.ARRAY_VERTEX].size() > 0 && surface_index < RenderingServer.MAX_MESH_SURFACES:
-					brush.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-					if face.override_texture.is_empty():
-						brush.mesh.surface_set_material(surface_index, _materials[face.texture])
-						brush.mesh.surface_set_name(surface_index, face.texture)
-					else:
-						brush.mesh.surface_set_material(surface_index, _materials[face.override_texture])
-						brush.mesh.surface_set_name(surface_index, face.override_texture)
 			if _should_collide(face.texture, entity.classname, face.surface_flag, face.content_flag):
 				for i in face.indices:
 					convex_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
@@ -870,14 +872,21 @@ func _pass_to_scene_tree() -> void:
 			# Render
 			if entity.geometry_flags & QEntity.GeometryFlags.RENDER:
 				var csg_combiner := CSGCombiner3D.new()
+				var unique_surfaces: PackedStringArray
 				for brush in data.brushes:
 					if brush.mesh == null: continue
+					for n in brush.mesh.get_surface_count():
+						if !unique_surfaces.has(brush.mesh.surface_get_name(n)):
+							unique_surfaces.append(brush.mesh.surface_get_name(n))
 					var csg_mesh := CSGMesh3D.new()
 					csg_mesh.mesh = brush.mesh
 					csg_combiner.add_child(csg_mesh)
-				if csg_combiner.get_child_count() > 0:
+				if csg_combiner.get_child_count() > 0 && unique_surfaces.size() < RenderingServer.MAX_MESH_SURFACES:
 					node.add_child(csg_combiner)
 					csg_to_compile.set(node, csg_combiner)
+				elif unique_surfaces.size() >= RenderingServer.MAX_MESH_SURFACES:
+					print("\t\t-ERROR: Cannot render %s: too many surfaces (%s/%s)!"%[entity.classname, unique_surfaces.size(), RenderingServer.MAX_MESH_SURFACES])
+					csg_combiner.queue_free()
 				else: csg_combiner.queue_free()
 			# Collision
 			if entity.geometry_flags & QEntity.GeometryFlags.CONVEX_COLLISIONS || _is_convex_class(entity.classname):
