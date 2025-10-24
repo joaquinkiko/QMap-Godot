@@ -33,9 +33,11 @@ class SolidData extends RefCounted:
 		var uvs: PackedVector2Array
 		var indices: PackedInt32Array
 		var texture: StringName
+		var override_texture: StringName
 		var is_trigger: bool
 		var surface_flag: int
 		var content_flag: int
+		var value: int
 		func _to_string() -> String: return "%s(V:%s F:(%s %s))"%[texture, vertices.size(), surface_flag, content_flag]
 	var brushes: Array[BrushData]
 	var origin: Vector3
@@ -186,11 +188,37 @@ func clear_children() -> void:
 ## Fill [member _materials]
 func _create_texture_map() -> void:
 	var placeholder := PlaceholderMaterial.new()
+	var registered_materials: PackedStringArray
 	for texturename in map.texturenames:
 		_materials[texturename] = placeholder
 		_textures[texturename] = null
 		_texture_sizes[texturename] = Vector2.ONE * settings.scaling
 		_alphatests[texturename] = false
+		registered_materials.append(texturename)
+	for tag in settings.smart_tags:
+		if tag.override_material == null: continue
+		for entity in map.entities: for brush in entity.brushes: for face in brush.faces:
+			var mat_name: String = ""
+			match tag.match_type:
+				QMapSmartTag.MatchType.CLASSNAME:
+					if entity.classname.to_lower().match(tag.pattern.to_lower()):
+						mat_name = "%s|%s|%s"%[tag.name, face.texturename, entity.classname]
+				QMapSmartTag.MatchType.SURFACE_FLAG:
+					if tag.pattern.to_int() != 0 && face.surface_flag & tag.pattern.to_int():
+						var value: float = face.value / (pow(10.0, tag.value_places))
+						mat_name = "%s|%s|%s"%[tag.name, face.texturename, value]
+				QMapSmartTag.MatchType.CONTENT_FLAG:
+					if tag.pattern.to_int() != 0 && face.contents_flag & tag.pattern.to_int():
+						var value: float = face.value / (pow(10.0, tag.value_places))
+						mat_name = "%s|%s|%s"%[tag.name, face.texturename, value]
+			if mat_name.is_empty(): continue
+			face.set_meta(&"override", mat_name)
+			if registered_materials.has(mat_name): continue
+			_materials[mat_name] = placeholder
+			_textures[mat_name] = null
+			_texture_sizes[mat_name] = Vector2.ONE * settings.scaling
+			_alphatests[mat_name] = false
+			registered_materials.append(mat_name)
 
 ## Fill [member _entities] and [member _solid_data]
 func _create_entity_maps() -> void:
@@ -235,6 +263,10 @@ func _create_entity_maps() -> void:
 						).normalized()
 					face_data.surface_flag = face.surface_flag
 					face_data.content_flag = face.contents_flag
+					face_data.value = face.value
+					if face.has_meta(&"override"):
+						face_data.override_texture = face.get_meta(&"override", "")
+						face.remove_meta(&"override")
 					brush_data.faces.append(face_data)
 				for face_data in brush_data.faces: brush_data.planes.append(face_data.plane)
 				for face_data in brush_data.faces: face_data.is_trigger = brush_data.is_trigger
@@ -263,14 +295,41 @@ func _load_wads(index: int) -> void:
 
 ## Create materials for [member _materials]
 func _generate_materials(index: int) -> void:
-	var texturename: StringName = _materials.keys()[index]
+	var texturename: String = _materials.keys()[index]
+	var is_override: bool = texturename.contains("|")
+	var tag: String
+	var info: String
+	var smart_tag: QMapSmartTag
+	if is_override:
+		var contents := texturename.split("|", true)
+		tag = contents[0]
+		texturename = contents[1]
+		info = contents[2]
+		for n in settings.smart_tags.size():
+			if settings.smart_tags[n].name == tag:
+				smart_tag = settings.smart_tags[n]
+				break
+		if smart_tag == null || smart_tag.override_material == null: is_override = false
 	## Ignore generation if empty or non-rendered texture
 	for texture in settings.empty_textures:
 		if texturename.to_lower() == texture.to_lower(): return
 	if !show_non_rendered_textures && !_is_render_texture(texturename): return
 	## Find texture and material
 	var texture := _find_texture_or_animated(texturename)
-	var material := _find_material(texturename)
+	var material: Material
+	if is_override:
+		material = smart_tag.override_material.duplicate()
+		material.set_meta(&"tag", tag)
+		if !info.is_empty() && info.is_valid_float():
+			material.set_meta(&"value", info.to_float())
+			material.set(smart_tag.value_property_path, info.to_float())
+	else:
+		for s_tag in settings.smart_tags: if s_tag.match_type == QMapSmartTag.MatchType.MATERIAL:
+			if s_tag.override_material == null: continue
+			var pattern: String = s_tag.pattern.replace("\\*", ASTRSK_ALT_CHAR)
+			var test_texture: String = texturename.replace("*", ASTRSK_ALT_CHAR).to_lower()
+			if test_texture.match(pattern): material = s_tag.override_material.duplicate()
+		if material == null: material = _find_material(texturename)
 	## Apply texture to material if not null
 	if texture != null:
 		material.set(settings.default_material_texture_path, texture)
@@ -301,7 +360,8 @@ func _generate_materials(index: int) -> void:
 			material.set("heightmap_texture", pbr_texture)
 	## Set material
 	material.set_meta(&"texturename", texturename)
-	_materials[texturename] = material
+	if is_override: _materials["%s|%s|%s"%[tag, texturename, info]] = material
+	else: _materials[texturename] = material
 
 ## Find either texture or animated texture
 func _find_texture_or_animated(texturename: StringName) -> Texture2D:
@@ -602,7 +662,6 @@ func _generate_meshes(index: int) -> void:
 		for face in brush.faces:
 			if _should_render(face.texture, entity.classname, face.surface_flag, face.content_flag):
 				var surface_index := brush.mesh.get_surface_count()
-				if surface_index == RenderingServer.MAX_MESH_SURFACES: continue
 				arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 				arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array()
 				arrays[Mesh.ARRAY_TEX_UV] = PackedVector2Array()
@@ -610,10 +669,14 @@ func _generate_meshes(index: int) -> void:
 					arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
 					arrays[Mesh.ARRAY_NORMAL].append(_convert_coordinates(face.normals[i]))
 					arrays[Mesh.ARRAY_TEX_UV].append(_get_tex_uv(face, face.vertices[i]))
-				if arrays[Mesh.ARRAY_VERTEX].size() > 0:
+				if arrays[Mesh.ARRAY_VERTEX].size() > 0 && surface_index < RenderingServer.MAX_MESH_SURFACES:
 					brush.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-					brush.mesh.surface_set_material(surface_index, _materials[face.texture])
-					brush.mesh.surface_set_name(surface_index, face.texture)
+					if face.override_texture.is_empty():
+						brush.mesh.surface_set_material(surface_index, _materials[face.texture])
+						brush.mesh.surface_set_name(surface_index, face.texture)
+					else:
+						brush.mesh.surface_set_material(surface_index, _materials[face.override_texture])
+						brush.mesh.surface_set_name(surface_index, face.override_texture)
 			if _should_collide(face.texture, entity.classname, face.surface_flag, face.content_flag):
 				for i in face.indices:
 					convex_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
@@ -693,7 +756,7 @@ func _is_collision_surface_flag(flag: int) -> bool:
 
 ## Returns true if content flag should have collision
 func _is_collision_content_flag(flag: int) -> bool:
-	for pattern in settings.get_non_rendered_content():
+	for pattern in settings.get_non_colliding_content():
 		if pattern == 0: continue
 		if flag & pattern: return false
 	return true

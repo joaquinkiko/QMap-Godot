@@ -158,7 +158,7 @@ func get_non_rendered_surfaces() -> PackedInt32Array:
 	for tag in smart_tags:
 		if tag.match_type != QMapSmartTag.MatchType.SURFACE_FLAG: continue
 		if tag.properties & QMapSmartTag.SmartProperties.NON_RENDERED:
-			output.append(find_content_flag(tag.pattern))
+			output.append(find_surface_flag(tag.pattern))
 	return output
 
 ## Returns list of non-rendered content flag values
@@ -194,7 +194,7 @@ func get_non_occluding_surfaces() -> PackedInt32Array:
 	for tag in smart_tags:
 		if tag.match_type != QMapSmartTag.MatchType.SURFACE_FLAG: continue
 		if tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
-			output.append(find_content_flag(tag.pattern))
+			output.append(find_surface_flag(tag.pattern))
 	return output
 
 ## Returns list of non-occluding content flag values
@@ -230,7 +230,7 @@ func get_non_colliding_surfaces() -> PackedInt32Array:
 	for tag in smart_tags:
 		if tag.match_type != QMapSmartTag.MatchType.SURFACE_FLAG: continue
 		if tag.properties & QMapSmartTag.SmartProperties.NON_COLLIDING:
-			output.append(find_content_flag(tag.pattern))
+			output.append(find_surface_flag(tag.pattern))
 	return output
 
 ## Returns list of non-colliding content flag values
@@ -266,7 +266,7 @@ func get_non_pathfinding_surfaces() -> PackedInt32Array:
 	for tag in smart_tags:
 		if tag.match_type != QMapSmartTag.MatchType.SURFACE_FLAG: continue
 		if tag.properties & QMapSmartTag.SmartProperties.NON_PATHFINDING:
-			output.append(find_content_flag(tag.pattern))
+			output.append(find_surface_flag(tag.pattern))
 	return output
 
 ## Returns list of non-pathfinding content flag values
@@ -287,8 +287,9 @@ func get_convex_entities() -> PackedStringArray:
 			output.append(tag.pattern)
 	return output
 
-## Returns matching content flag's value, or 0 if the flag doesn't exist
+## Returns matching content flag's value, or 0 if the flag doesn't exist. If is int, just return that int
 func find_content_flag(name: StringName) -> int:
+	if name.is_valid_int(): return name.to_int()
 	var bit: int = 1
 	for flag in content_flags:
 		if flag.name == name:
@@ -296,8 +297,9 @@ func find_content_flag(name: StringName) -> int:
 		bit *= 2
 	return 0
 
-## Returns matching surface flag's value, or 0 if the flag doesn't exist
+## Returns matching surface flag's value, or 0 if the flag doesn't exist. If is int, just return that int
 func find_surface_flag(name: StringName) -> int:
+	if name.is_valid_int(): return name.to_int()
 	var bit: int = 1
 	for flag in surface_flags:
 		if flag.name == name:

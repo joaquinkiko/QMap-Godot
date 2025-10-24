@@ -41,6 +41,10 @@ enum SmartProperties{
 var properties: int
 ## Overriders [member default_material] for this surface or entity
 @export var override_material: Material
+## Property path to apply value to [member override_material] for Surface and Content Flag overrrides
+@export var value_property_path: StringName = &"value"
+## How many floating point places to adjust value by (value 123 with 0 = 123.0, value 123 with 2 = 1.23)
+@export_range(0, 5, 1) var value_places: int = 0
 func _init(_name := &"", _match := 0, _pattern := "", _texture := &"", _properties := 0) -> void:
 	name = _name
 	match_type = _match
