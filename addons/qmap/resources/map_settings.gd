@@ -133,6 +133,18 @@ class_name QMapSettings extends Resource
 @export var default_ao_intensity: String = "2"
 ## Default value of [member worldspawn_ao_radius]
 @export var default_ao_radius: String = "1"
+@export_group("Pathfinding")
+## If true, will generate pathfinding for solid entities
+@export var generate_pathfinding: bool = true
+## Default [NavigationMesh] used by Navigation regions
+##
+## NOTE: Will NOT work if [member NavigationMesh.geometry_parsed_geometry_type]
+## is set to Mesh Instance
+@export var default_nav_mesh: NavigationMesh
+## Property for adjusting nav region enter cost
+@export var property_nav_enter_cost: StringName = &"_enter_cost"
+## Property for adjusting nav region travel cost
+@export var property_nav_travel_cost: StringName = &"_travel_cost"
 
 ## Returns list of non-rendered texture patterns
 func get_non_rendered_textures() -> PackedStringArray:

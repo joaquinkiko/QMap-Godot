@@ -18,6 +18,7 @@ class SolidData extends RefCounted:
 		var mesh: ArrayMesh
 		var collision_mesh: ArrayMesh
 		var occlusion_mesh: ArrayMesh
+		var pathfinding_mesh: ArrayMesh
 		var sorted_faces: Dictionary[StringName, Array]
 		func _to_string() -> String: return "BrushData(F: %s)"%faces.size()
 	class FaceData extends RefCounted:
@@ -80,6 +81,7 @@ var _entities: Dictionary[QEntity, Node]
 var _solid_data: Dictionary[QEntity, SolidData]
 var _target_destinations: Dictionary[StringName, Node]
 var _alphatests: Dictionary[StringName, bool]
+var _nav_regions: Array[NavigationRegion3D]
 
 func _ready() -> void:
 	if auto_load_map: load_map()
@@ -178,7 +180,7 @@ func load_map() -> Error:
 	progress.emit(0.95, "Spawning entities")
 	if verbose: print("\t-Spawning entities...")
 	interval_time = Time.get_ticks_msec()
-	_pass_to_scene_tree()
+	await _pass_to_scene_tree()
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 	if settings.unwrap_uvs:
 		if verbose: print("\t-Unwrapping UVs...")
@@ -197,6 +199,7 @@ func load_map() -> Error:
 	_solid_data.clear()
 	_alphatests.clear()
 	_target_destinations.clear()
+	_nav_regions.clear()
 	if verbose: print("Finished generating map in %sms"%(Time.get_ticks_msec() - start_time))
 	progress.emit(1, "Finished")
 	return OK
@@ -679,12 +682,15 @@ func _generate_meshes(index: int) -> void:
 	var arrays: Array
 	var convex_arrays: Array
 	var occlusion_arrays: Array
+	var path_arrays: Array
 	arrays.resize(Mesh.ARRAY_MAX)
 	convex_arrays.resize(Mesh.ARRAY_MAX)
 	occlusion_arrays.resize(Mesh.ARRAY_MAX)
+	path_arrays.resize(Mesh.ARRAY_MAX)
 	for brush in data.brushes:
 		brush.mesh = ArrayMesh.new()
 		convex_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+		path_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		occlusion_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		for key in brush.sorted_faces:
 			var surface_index := brush.mesh.get_surface_count()
@@ -708,6 +714,9 @@ func _generate_meshes(index: int) -> void:
 			if _should_collide(face.texture, entity.classname, face.surface_flag, face.content_flag):
 				for i in face.indices:
 					convex_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
+			if _should_pathfind(face.texture, entity.classname, face.surface_flag, face.content_flag):
+				for i in face.indices:
+					path_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
 			if _should_occlude(face.texture, entity.classname, face.surface_flag, face.content_flag):
 				if !_alphatests[face.texture] && use_occlusion_culling:
 					for i in face.indices:
@@ -716,6 +725,9 @@ func _generate_meshes(index: int) -> void:
 		if convex_arrays[Mesh.ARRAY_VERTEX].size() > 0:
 			brush.collision_mesh = ArrayMesh.new()
 			brush.collision_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, convex_arrays)
+		if path_arrays[Mesh.ARRAY_VERTEX].size() > 0:
+			brush.pathfinding_mesh = ArrayMesh.new()
+			brush.pathfinding_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, convex_arrays)
 		if occlusion_arrays[Mesh.ARRAY_VERTEX].size() > 0:
 			brush.occlusion_mesh = ArrayMesh.new()
 			brush.occlusion_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, occlusion_arrays)
@@ -830,6 +842,37 @@ func _is_convex_class(classname: String) -> bool:
 		if classname.to_lower().match(pattern.to_lower()): return true
 	return false
 
+## Returns true if texture should have pathfinding
+func _is_pathfinding_texture(texture: StringName) -> bool:
+	for pattern in settings.get_non_pathfinding_textures():
+		pattern = pattern.replace("\\*", ASTRSK_ALT_CHAR)
+		if texture.to_lower().replace("*", ASTRSK_ALT_CHAR).match(pattern.to_lower()): return false
+	return true
+
+## Returns true if classname should have pathfinding
+func _is_pathfinding_class(classname: String) -> bool:
+	for pattern in settings.get_non_pathfinding_entities():
+		if classname.to_lower().match(pattern.to_lower()): return false
+	return true
+
+## Returns true if surface flag should have pathfinding
+func _is_pathfinding_surface_flag(flag: int) -> bool:
+	for pattern in settings.get_non_pathfinding_surfaces():
+		if pattern == 0: continue
+		if flag & pattern: return false
+	return true
+
+## Returns true if content flag should have pathfinding
+func _is_pathfinding_content_flag(flag: int) -> bool:
+	for pattern in settings.get_non_pathfinding_content():
+		if pattern == 0: continue
+		if flag & pattern: return false
+	return true
+
+## Returns true if should have pathfinding based on texture, class, and flags
+func _should_pathfind(texture: StringName, classname: String, surface: int, content: int) -> bool:
+	return _is_pathfinding_texture(texture) && _is_pathfinding_class(classname) && _is_pathfinding_surface_flag(surface) && _is_pathfinding_content_flag(content)
+
 func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 	var tex_uv := Vector2.ONE
 	var texture_size: Vector2 = _texture_sizes[face.texture]
@@ -857,9 +900,12 @@ func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 	return tex_uv
 
 func _pass_to_scene_tree() -> void:
+	var original_process_mode := process_mode
+	process_mode = Node.PROCESS_MODE_DISABLED
 	var csg_to_compile: Dictionary[Node, CSGCombiner3D]
 	var collision_csg_to_compile: Dictionary[Node, CSGCombiner3D]
 	var occlusion_csg_to_compile: Dictionary[Node, CSGCombiner3D]
+	var path_csg_to_compile: Dictionary[Node, CSGCombiner3D]
 	var node_entities: Dictionary[Node, QEntity]
 	# Find worldspawn and apply special properties
 	for entity: QEntity in _entities.keys():
@@ -944,6 +990,18 @@ func _pass_to_scene_tree() -> void:
 					node.add_child(csg_combiner)
 					occlusion_csg_to_compile.set(node, csg_combiner)
 				else: csg_combiner.queue_free()
+			# Pathfinding
+			if entity.geometry_flags & QEntity.GeometryFlags.OCCLUSION:
+				var csg_combiner := CSGCombiner3D.new()
+				for brush in data.brushes:
+					if brush.pathfinding_mesh == null: continue
+					var csg_mesh := CSGMesh3D.new()
+					csg_mesh.mesh = brush.pathfinding_mesh
+					csg_combiner.add_child(csg_mesh)
+				if csg_combiner.get_child_count() > 0:
+					node.add_child(csg_combiner)
+					path_csg_to_compile.set(node, csg_combiner)
+				else: csg_combiner.queue_free()
 		add_child(node, true)
 	# Compile CSG after allowing a frame for it to calculate
 	await get_tree().process_frame
@@ -986,6 +1044,32 @@ func _pass_to_scene_tree() -> void:
 		occluder_instance.occluder = array_occluder
 		node.add_child(occluder_instance)
 		occlusion_csg_to_compile[node].queue_free()
+	# Pathfinding
+	if settings.generate_pathfinding:
+		for node in path_csg_to_compile.keys():
+			var entity: QEntity = _entities.find_key(node)
+			var nav_region := NavigationRegion3D.new()
+			nav_region.name = "NavRegion"
+			if settings.default_nav_mesh != null:
+				nav_region.navigation_mesh = settings.default_nav_mesh
+			else:
+				nav_region.navigation_mesh = NavigationMesh.new()
+				nav_region.navigation_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+			var nav_collider := CollisionShape3D.new()
+			nav_collider.shape = collision_csg_to_compile[node].bake_static_mesh().create_trimesh_shape()
+			var nav_static := StaticBody3D.new()
+			nav_static.add_child(nav_collider)
+			nav_region.add_child(nav_static)
+			node.add_child(nav_region)
+			nav_region.enter_cost = entity.properties.get(settings.property_nav_enter_cost, "0").to_float()
+			nav_region.travel_cost = entity.properties.get(settings.property_nav_travel_cost, "1").to_float()
+			_nav_regions.append(nav_region)
+			path_csg_to_compile[node].queue_free()
+		for nav_region in _nav_regions:
+			nav_region.bake_navigation_mesh()
+			while nav_region.is_baking(): await get_tree().process_frame
+			for child in nav_region.get_children(): child.queue_free()
+	process_mode = original_process_mode
 
 ## Generate special worldspawn node properties
 func _worldspawn_generation(properties: Dictionary[StringName, String], node: Node) -> void:
