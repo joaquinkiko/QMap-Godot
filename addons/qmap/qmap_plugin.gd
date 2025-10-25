@@ -59,5 +59,3 @@ func _exit_tree() -> void:
 	ResourceSaver.remove_resource_format_saver(qmap_saver)
 	ResourceLoader.remove_resource_format_loader(lmp_loader)
 	ResourceSaver.remove_resource_format_saver(lmp_saver)
-	if local_settings.get_setting(PROP_TRENCHBROOM_DIR) == "": local_settings.erase(PROP_TRENCHBROOM_DIR)
-	if local_settings.get_setting(PROP_TRENCHBROOM_VERSION) == 0: local_settings.erase(PROP_TRENCHBROOM_VERSION)

@@ -172,9 +172,11 @@ func _export_to_trenchbroom() -> void:
 		return
 	# Create directory if needed
 	if !DirAccess.dir_exists_absolute(config_path):
+		print("Creating new trenchbroom config...")
 		if DirAccess.make_dir_recursive_absolute(config_path) != OK:
 			printerr("Cannot export trenchbroom config: Error creating config directory")
 			return
+	else: print("Updating trenchbroom config...")
 	# Export icon
 	if ResourceLoader.exists(icon_path):
 		var icon_texture: Texture2D = ResourceLoader.load(icon_path)
@@ -187,9 +189,9 @@ func _export_to_trenchbroom() -> void:
 		printerr("Cannot export trenchbroom config: Error writing FGD to config directory")
 		return
 	# Export cfg
-	var file := FileAccess.open("%s/%s.cfg"%[config_path], FileAccess.WRITE)
+	var file := FileAccess.open("%s/GameConfig.cfg"%[config_path], FileAccess.WRITE)
 	if file == null:
-		printerr("Cannot export trenchbroom config: Error writing config (%s)"%FileAccess.get_open_error())
+		printerr("Cannot export trenchbroom config: Error writing config (%s)"%error_string(FileAccess.get_open_error()))
 		return
 	var version: int = local_settings.get_setting("qmap/trenchbroom/config_version")
 	if version == 0: version = 9
@@ -212,54 +214,53 @@ func _export_to_trenchbroom() -> void:
 	var brush_face_tags: String
 	for tag in smart_tags:
 		var tag_str: String = "{\n"
-		tag_str += '\t"name": "%s",\n'%tag.name
+		tag_str += '\t\t\t\t"name": "%s",\n'%tag.name
 		if tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
-			tag_str += '\t"attribs": [ "transparent" ],\n'
+			tag_str += '\t\t\t\t"attribs": [ "transparent" ],\n'
 		else:
-			tag_str += '\t"attribs": [ ],\n'
+			tag_str += '\t\t\t\t"attribs": [ ],\n'
 		match tag.match_type:
 			QMapSmartTag.MatchType.MATERIAL:
-				tag_str += '\t"match": "material",\n'
+				tag_str += '\t\t\t\t"match": "material",\n'
 			QMapSmartTag.MatchType.CONTENT_FLAG:
-				tag_str += '\t"match": "contentflag",\n'
+				tag_str += '\t\t\t\t"match": "contentflag",\n'
 			QMapSmartTag.MatchType.SURFACE_FLAG:
-				tag_str += '\t"match": "surfaceparm",\n'
+				tag_str += '\t\t\t\t"match": "surfaceparm",\n'
 			QMapSmartTag.MatchType.CLASSNAME:
-				tag_str += '\t"match": "classname",\n'
+				tag_str += '\t\t\t\t"match": "classname",\n'
 		if tag.match_type == QMapSmartTag.MatchType.CONTENT_FLAG:
-			tag_str += '\t"flags": "%s",\n'%tag.pattern
+			tag_str += '\t\t\t\t"flags": "%s",\n'%tag.pattern
 		else:
-			tag_str += '\t"pattern": "%s",\n'%tag.pattern
+			tag_str += '\t\t\t\t"pattern": "%s",\n'%tag.pattern
 		if !tag.default_texture.is_empty():
-			tag_str += '\t"material": "%s",\n'%tag.default_texture
-		tag_str += "}"
+			tag_str += '\t\t\t\t"material": "%s",\n'%tag.default_texture
+		tag_str += "\t\t\t}"
 		if tag.match_type == QMapSmartTag.MatchType.CLASSNAME:
 			if brush_tags.is_empty(): brush_tags += tag_str
-			else: brush_tags += ",\n"%tag_str
+			else: brush_tags += ",\n\t\t\t%s"%tag_str
 		else:
 			if brush_face_tags.is_empty(): brush_face_tags += tag_str
-			else: brush_face_tags += ",\n"%tag_str
+			else: brush_face_tags += ",\n\t\t\t%s"%tag_str
 	var content_flags_str: String
 	var surface_flags_str: String
 	var bit := 1
 	for flag in content_flags:
 		if flag == null || flag.name.is_empty():
-			if !content_flags_str.is_empty(): content_flags_str += ", // %s\n"%(bit/2)
+			if !content_flags_str.is_empty(): content_flags_str += ", // %s\n\t\t\t"%(bit/2)
 			content_flags_str += '{ "unused": true }'
 		else:
-			if !content_flags_str.is_empty(): content_flags_str += ", // %s\n"%(bit/2)
-			content_flags_str += '{\n\t"name": "%s",\n\t"description": "%s - %s"\n}'%[flag.name, bit, flag.description]
+			if !content_flags_str.is_empty(): content_flags_str += ", // %s\n\t\t\t"%(bit/2)
+			content_flags_str += '{\n\t\t\t\t"name": "%s",\n\t\t\t\t"description": "%s - %s"\n\t\t\t}'%[flag.name, bit, flag.description]
 		bit *= 2
 	if !content_flags_str.is_empty(): content_flags_str +=  " // %s"%(bit/2)
 	bit = 1
 	for flag in surface_flags:
 		if flag == null || flag.name.is_empty():
-			if !surface_flags_str.is_empty(): surface_flags_str += ", // %s\n"%(bit/2)
+			if !surface_flags_str.is_empty(): surface_flags_str += ", // %s\n\t\t\t"%(bit/2)
 			surface_flags_str += '{ "unused": true }'
 		else:
-			if !surface_flags_str.is_empty(): surface_flags_str += ", // %s\n"%(bit/2)
-			surface_flags_str += '{\n\t"name": "%s",\n\t"description": "%s - %s"\n}'%[flag.name, bit, flag.description]
-		bit *= 2
+			if !surface_flags_str.is_empty(): surface_flags_str += ", // %s\n\t\t\t"%(bit/2)
+			surface_flags_str += '{\n\t\t\t\t"name": "%s",\n\t\t\t\t"description": "%s - %s"\n\t\t\t}'%[flag.name, bit, flag.description]
 		bit *= 2
 	if !surface_flags_str.is_empty(): surface_flags_str +=  " // %s"%(bit/2)
 	var soft_bounds_str := "%s %s %s %s %s %s"%[
@@ -272,58 +273,57 @@ func _export_to_trenchbroom() -> void:
 	]
 	match version:
 		8,9:
-			file.store_string("""
-			{
-				"version": %s,
-				"name": "%s",
-				"icon": "icon.png",
-				"fileformats": [
-					{ "format": "Valve" },
-					{ "format": "Standard" },
-					{ "format": "Quake2" },
-					{ "format": "Quake2 (Valve)" },
-					{ "format": "Quake3" },
-					{ "format": "Quake3 (Valve)" },
-					{ "format": "Quake3 (legacy)" }
-				],
-				"filesystem": {
-					"searchpath": "%s",
-					"packageformat": { "extension": ".zip", "format": "zip" }
-				},
-				"materials": {
-					"root": "%s",
-					"extensions": [".bmp", ".exr", ".hdr", ".jpeg", ".jpg", ".png", ".tga", ".webp", ".D", ".C"],
-					%s
-					%s
-					"attribute": "wad"
-				},
-				"entities": {
-					"definitions": [ "%s" ],
-					"defaultcolor": "1.0 0.0 1.0 1.0",
-					"scale": %s
-				},
-				"tags": {
-					"brush": [
-						%s
-					],
-					"brushface": [
-						%s
-					]
-				},
-				"faceattribs": { 
-					"defaults": {
-						%s
-					},
-					"contentflags": [
-						%s
-					],
-					"surfaceflags": [
-						%s
-					]
-				},
-				"softMapBounds":"%s"
-			}
-			"""%[
+			file.store_string("""{
+	"version": %s,
+	"name": "%s",
+	"icon": "icon.png",
+	"fileformats": [
+		{ "format": "Valve" },
+		{ "format": "Standard" },
+		{ "format": "Quake2" },
+		{ "format": "Quake2 (Valve)" },
+		{ "format": "Quake3" },
+		{ "format": "Quake3 (Valve)" },
+		{ "format": "Quake3 (legacy)" }
+	],
+	"filesystem": {
+		"searchpath": "%s",
+		"packageformat": { "extension": ".zip", "format": "zip" }
+	},
+	"materials": {
+		"root": "%s",
+		"extensions": [".bmp", ".exr", ".hdr", ".jpeg", ".jpg", ".png", ".tga", ".webp", ".D", ".C"],
+		%s
+		%s
+		"attribute": "wad"
+	},
+	"entities": {
+		"definitions": [ "%s" ],
+		"defaultcolor": "1.0 0.0 1.0 1.0",
+		"scale": %s
+	},
+	"tags": {
+		"brush": [
+			%s
+		],
+		"brushface": [
+			%s
+		]
+	},
+	"faceattribs": { 
+		"defaults": {
+			%s
+		},
+		"contentflags": [
+			%s
+		],
+		"surfaceflags": [
+			%s
+		]
+	},
+	"softMapBounds":"%s"
+}
+"""%[
 				version,
 				game_name,
 				base_path,
@@ -340,59 +340,58 @@ func _export_to_trenchbroom() -> void:
 				soft_bounds_str
 			])
 		4:
-			file.store_string("""
-			{
-				"version": 4,
-				"name": "%s",
-				"icon": "icon.png",
-				"fileformats": [
-					{ "format": "Valve" },
-					{ "format": "Standard" },
-					{ "format": "Quake2" },
-					{ "format": "Quake2 (Valve)" },
-					{ "format": "Quake3" },
-					{ "format": "Quake3 (Valve)" },
-					{ "format": "Quake3 (legacy)" }
-				],
-				"filesystem": {
-					"searchpath": "%s",
-					"packageformat": { "extension": ".zip", "format": "zip" }
-				},
-				"textures": {
-					"package": { "type": "directory", "root": "%s" },
-					"format": { "extensions": ["jpg", "jpeg", "tga", "png", "D", "C"], "format": "image" },
-					%s
-					%s
-					"attribute": ["_tb_textures", "wad"]
-				},
-				"entities": {
-					"definitions": [ "%s" ],
-					"defaultcolor": "1.0 0.0 1.0 1.0",
-					"modelformats": [ "bsp, mdl, md2" ],
-					"scale": %s
-				},
-				"tags": {
-					"brush": [
-						%s
-					],
-					"brushface": [
-						%s
-					]
-				},
-				"faceattribs": { 
-					"defaults": {
-						%s
-					},
-					"contentflags": [
-						%s
-					],
-					"surfaceflags": [
-						%s
-					]
-				},
-				"softMapBounds":"%s"
-			}
-			"""%[
+			file.store_string("""{
+	"version": 4,
+	"name": "%s",
+	"icon": "icon.png",
+	"fileformats": [
+		{ "format": "Valve" },
+		{ "format": "Standard" },
+		{ "format": "Quake2" },
+		{ "format": "Quake2 (Valve)" },
+		{ "format": "Quake3" },
+		{ "format": "Quake3 (Valve)" },
+		{ "format": "Quake3 (legacy)" }
+	],
+	"filesystem": {
+		"searchpath": "%s",
+		"packageformat": { "extension": ".zip", "format": "zip" }
+	},
+	"textures": {
+		"package": { "type": "directory", "root": "%s" },
+		"format": { "extensions": ["jpg", "jpeg", "tga", "png", "D", "C"], "format": "image" },
+		%s
+		%s
+		"attribute": ["_tb_textures", "wad"]
+	},
+	"entities": {
+		"definitions": [ "%s" ],
+		"defaultcolor": "1.0 0.0 1.0 1.0",
+		"modelformats": [ "bsp, mdl, md2" ],
+		"scale": %s
+	},
+	"tags": {
+		"brush": [
+			%s
+		],
+		"brushface": [
+			%s
+		]
+	},
+	"faceattribs": { 
+		"defaults": {
+			%s
+		},
+		"contentflags": [
+			%s
+		],
+		"surfaceflags": [
+			%s
+		]
+	},
+	"softMapBounds":"%s"
+}
+"""%[
 				game_name,
 				base_path,
 				path_textures,
