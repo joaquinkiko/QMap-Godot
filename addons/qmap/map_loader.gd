@@ -912,7 +912,7 @@ func _pass_to_scene_tree() -> void:
 		if entity.classname == "worldspawn":
 			_worldspawn_generation(entity.properties, _entities[entity])
 			break
-	# Pass entities to SceneTree
+	# Prepare entities for SceneTree
 	for entity: QEntity in _entities.keys():
 		var data: SolidData = _solid_data[entity]
 		var node := _entities[entity]
@@ -1002,7 +1002,6 @@ func _pass_to_scene_tree() -> void:
 					node.add_child(csg_combiner)
 					path_csg_to_compile.set(node, csg_combiner)
 				else: csg_combiner.queue_free()
-		add_child(node, true)
 	# Compile CSG after allowing a frame for it to calculate
 	await get_tree().process_frame
 	# Render
@@ -1045,30 +1044,34 @@ func _pass_to_scene_tree() -> void:
 		node.add_child(occluder_instance)
 		occlusion_csg_to_compile[node].queue_free()
 	# Pathfinding
-	if settings.generate_pathfinding:
-		for node in path_csg_to_compile.keys():
-			var entity: QEntity = _entities.find_key(node)
-			var nav_region := NavigationRegion3D.new()
-			nav_region.name = "NavRegion"
-			if settings.default_nav_mesh != null:
-				nav_region.navigation_mesh = settings.default_nav_mesh
-			else:
-				nav_region.navigation_mesh = NavigationMesh.new()
-				nav_region.navigation_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
-			var nav_collider := CollisionShape3D.new()
-			nav_collider.shape = collision_csg_to_compile[node].bake_static_mesh().create_trimesh_shape()
-			var nav_static := StaticBody3D.new()
-			nav_static.add_child(nav_collider)
-			nav_region.add_child(nav_static)
-			node.add_child(nav_region)
-			nav_region.enter_cost = entity.properties.get(settings.property_nav_enter_cost, "0").to_float()
-			nav_region.travel_cost = entity.properties.get(settings.property_nav_travel_cost, "1").to_float()
-			_nav_regions.append(nav_region)
-			path_csg_to_compile[node].queue_free()
-		for nav_region in _nav_regions:
-			nav_region.bake_navigation_mesh()
-			while nav_region.is_baking(): await get_tree().process_frame
-			for child in nav_region.get_children(): child.queue_free()
+	if settings.generate_pathfinding: for node in path_csg_to_compile.keys():
+		var entity: QEntity = _entities.find_key(node)
+		var nav_region := NavigationRegion3D.new()
+		nav_region.name = "NavRegion"
+		if settings.default_nav_mesh != null:
+			nav_region.navigation_mesh = settings.default_nav_mesh
+		else:
+			nav_region.navigation_mesh = NavigationMesh.new()
+			nav_region.navigation_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+		var nav_collider := CollisionShape3D.new()
+		nav_collider.shape = collision_csg_to_compile[node].bake_static_mesh().create_trimesh_shape()
+		var nav_static := StaticBody3D.new()
+		nav_static.add_child(nav_collider)
+		nav_region.add_child(nav_static)
+		node.add_child(nav_region)
+		nav_region.enter_cost = entity.properties.get(settings.property_nav_enter_cost, "0").to_float()
+		nav_region.travel_cost = entity.properties.get(settings.property_nav_travel_cost, "1").to_float()
+		_nav_regions.append(nav_region)
+		path_csg_to_compile[node].queue_free()
+	# Move entities to Scene Tree
+	for entity: QEntity in _entities.keys():
+		var node := _entities[entity]
+		add_child(node, true)
+	# Bake pathfinding
+	for nav_region in _nav_regions:
+		nav_region.bake_navigation_mesh()
+		while nav_region.is_baking(): await get_tree().process_frame
+		for child in nav_region.get_children(): child.queue_free()
 	process_mode = original_process_mode
 
 ## Generate special worldspawn node properties
