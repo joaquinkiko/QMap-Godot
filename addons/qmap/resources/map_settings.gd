@@ -197,7 +197,7 @@ func _export_to_trenchbroom() -> void:
 	if version == 0: version = 9
 	var exclude_textures: String = ""
 	if use_pbr:
-		exclude_textures += 'excludes": [ '
+		exclude_textures += '"excludes": [ '
 		exclude_textures += '"*%s", '%suffix_normal
 		exclude_textures += '"*%s", '%suffix_metallic
 		exclude_textures += '"*%s", '%suffix_roughness
@@ -234,7 +234,8 @@ func _export_to_trenchbroom() -> void:
 			tag_str += '\t\t\t\t"pattern": "%s",\n'%tag.pattern
 		if !tag.default_texture.is_empty():
 			tag_str += '\t\t\t\t"material": "%s",\n'%tag.default_texture
-		tag_str += "\t\t\t}"
+		tag_str = tag_str.trim_suffix(",\n")
+		tag_str += "\n\t\t\t}"
 		if tag.match_type == QMapSmartTag.MatchType.CLASSNAME:
 			if brush_tags.is_empty(): brush_tags += tag_str
 			else: brush_tags += ",\n\t\t\t%s"%tag_str
