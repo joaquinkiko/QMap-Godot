@@ -73,4 +73,7 @@ default_sun_penumbra = "3.0"
 default_ao_enabled = "0"
 default_ao_intensity = "2"
 default_ao_radius = "1"
+generate_pathfinding = true
+property_nav_enter_cost = &"_enter_cost"
+property_nav_travel_cost = &"_travel_cost"
 metadata/_custom_type_script = "uid://wu0lh7ysksg"
