@@ -1,3 +1,4 @@
+@tool
 class_name QMapSettings extends Resource
 
 ## [FGD] to initialize entities with
@@ -7,6 +8,8 @@ class_name QMapSettings extends Resource
 @export_range(1, 256, 1) var scaling: int = 32
 ## Ratio for UV unwrapping
 @export_range(1, 256, 1) var uv_unwrap_texel_ratio: int = 16
+## Default UV scaling
+@export var default_uv_scale := Vector2.ONE
 ## If true will unwrap mesh UVs for lightmapping
 @export var unwrap_uvs: bool = false
 ## Defines typical map bounds
@@ -44,7 +47,8 @@ class_name QMapSettings extends Resource
 @export var path_models: StringName = &"models"
 ## Path relative to [base_path] to load Scenes
 @export var path_scenes: StringName = &"scenes"
-
+## Path to default palette relative to [member base_path]
+@export var path_palette: StringName = &""
 @export_group("Default Material")
 ## Default material for new textures
 @export var default_material: Material
@@ -145,6 +149,267 @@ class_name QMapSettings extends Resource
 @export var property_nav_enter_cost: StringName = &"_enter_cost"
 ## Property for adjusting nav region travel cost
 @export var property_nav_travel_cost: StringName = &"_travel_cost"
+@export_group("Trenchbroom")
+## Exports current configuration to Trenchbroom
+@export_tool_button("Export Trenchbroom Config", "Callable") var _trenchbroom_export := _export_to_trenchbroom
+
+## Exports current configuration to Trenchbroom (Editor Only)
+func _export_to_trenchbroom() -> void:
+	var local_settings := EditorInterface.get_editor_settings()
+	var games_dir: String = local_settings.get_setting("qmap/trenchbroom/games_config_dir")
+	var game_name: String = ProjectSettings.get_setting("application/config/name", "")
+	var icon_path: String = ProjectSettings.get_setting("application/config/icon", "")
+	var config_path := "%s/%s"%[games_dir, game_name.validate_filename().replace(" ", "")]
+	# Validate data
+	if games_dir.is_empty() || !games_dir.is_absolute_path():
+		printerr("Cannot export trenchbroom config: must provide valid path in project settings 'qmap/trenchbroom/games_config_dir'")
+		return
+	if fgd == null:
+		printerr("Cannot export trenchbroom config: Must set FGD")
+		return
+	if game_name.is_empty():
+		printerr("Cannot export trenchbroom config: must set application name in project settings 'application/config/name'")
+		return
+	# Create directory if needed
+	if !DirAccess.dir_exists_absolute(config_path):
+		if DirAccess.make_dir_recursive_absolute(config_path) != OK:
+			printerr("Cannot export trenchbroom config: Error creating config directory")
+			return
+	# Export icon
+	if ResourceLoader.exists(icon_path):
+		var icon_texture: Texture2D = ResourceLoader.load(icon_path)
+		var icon := icon_texture.get_image()
+		icon.resize(32, 32, Image.INTERPOLATE_LANCZOS)
+		icon.save_png("%s/icon.png"%config_path)
+	# Export fgd
+	var fgd_filename: String = "%s.fgd"%fgd.resource_path.get_file().get_basename()
+	if FGDResourceSaver.new()._save(fgd, "%s/%s"%[config_path, fgd_filename], 0) != OK:
+		printerr("Cannot export trenchbroom config: Error writing FGD to config directory")
+		return
+	# Export cfg
+	var file := FileAccess.open("%s/%s.cfg"%[config_path], FileAccess.WRITE)
+	if file == null:
+		printerr("Cannot export trenchbroom config: Error writing config (%s)"%FileAccess.get_open_error())
+		return
+	var version: int = local_settings.get_setting("qmap/trenchbroom/config_version")
+	if version == 0: version = 9
+	var exclude_textures: String = ""
+	if use_pbr:
+		exclude_textures += 'excludes": [ '
+		exclude_textures += '"*%s", '%suffix_normal
+		exclude_textures += '"*%s", '%suffix_metallic
+		exclude_textures += '"*%s", '%suffix_roughness
+		exclude_textures += '"*%s", '%suffix_emission
+		exclude_textures += '"*%s", '%suffix_ao
+		exclude_textures += '"*%s", '%suffix_height
+		exclude_textures += '"*%s"'%suffix_normal
+		exclude_textures += ' ],'
+	var palette_str: String = ""
+	if !path_palette.is_empty():
+		palette_str = '"palette": "%s",'%path_palette
+	var uv_scale_str: String = '"scale": [%s, %s]'%[default_uv_scale.x, default_uv_scale.y]
+	var brush_tags: String
+	var brush_face_tags: String
+	for tag in smart_tags:
+		var tag_str: String = "{\n"
+		tag_str += '\t"name": "%s",\n'%tag.name
+		if tag.properties & QMapSmartTag.SmartProperties.TRANSPARENT:
+			tag_str += '\t"attribs": [ "transparent" ],\n'
+		else:
+			tag_str += '\t"attribs": [ ],\n'
+		match tag.match_type:
+			QMapSmartTag.MatchType.MATERIAL:
+				tag_str += '\t"match": "material",\n'
+			QMapSmartTag.MatchType.CONTENT_FLAG:
+				tag_str += '\t"match": "contentflag",\n'
+			QMapSmartTag.MatchType.SURFACE_FLAG:
+				tag_str += '\t"match": "surfaceparm",\n'
+			QMapSmartTag.MatchType.CLASSNAME:
+				tag_str += '\t"match": "classname",\n'
+		if tag.match_type == QMapSmartTag.MatchType.CONTENT_FLAG:
+			tag_str += '\t"flags": "%s",\n'%tag.pattern
+		else:
+			tag_str += '\t"pattern": "%s",\n'%tag.pattern
+		if !tag.default_texture.is_empty():
+			tag_str += '\t"material": "%s",\n'%tag.default_texture
+		tag_str += "}"
+		if tag.match_type == QMapSmartTag.MatchType.CLASSNAME:
+			if brush_tags.is_empty(): brush_tags += tag_str
+			else: brush_tags += ",\n"%tag_str
+		else:
+			if brush_face_tags.is_empty(): brush_face_tags += tag_str
+			else: brush_face_tags += ",\n"%tag_str
+	var content_flags_str: String
+	var surface_flags_str: String
+	var bit := 1
+	for flag in content_flags:
+		if flag == null || flag.name.is_empty():
+			if !content_flags_str.is_empty(): content_flags_str += ", // %s\n"%(bit/2)
+			content_flags_str += '{ "unused": true }'
+		else:
+			if !content_flags_str.is_empty(): content_flags_str += ", // %s\n"%(bit/2)
+			content_flags_str += '{\n\t"name": "%s",\n\t"description": "%s - %s"\n}'%[flag.name, bit, flag.description]
+		bit *= 2
+	if !content_flags_str.is_empty(): content_flags_str +=  " // %s"%(bit/2)
+	bit = 1
+	for flag in surface_flags:
+		if flag == null || flag.name.is_empty():
+			if !surface_flags_str.is_empty(): surface_flags_str += ", // %s\n"%(bit/2)
+			surface_flags_str += '{ "unused": true }'
+		else:
+			if !surface_flags_str.is_empty(): surface_flags_str += ", // %s\n"%(bit/2)
+			surface_flags_str += '{\n\t"name": "%s",\n\t"description": "%s - %s"\n}'%[flag.name, bit, flag.description]
+		bit *= 2
+		bit *= 2
+	if !surface_flags_str.is_empty(): surface_flags_str +=  " // %s"%(bit/2)
+	var soft_bounds_str := "%s %s %s %s %s %s"%[
+		soft_map_bounds.position.x,
+		soft_map_bounds.position.y,
+		soft_map_bounds.position.z,
+		soft_map_bounds.size.x,
+		soft_map_bounds.size.y,
+		soft_map_bounds.size.z,
+	]
+	match version:
+		8,9:
+			file.store_string("""
+			{
+				"version": %s,
+				"name": "%s",
+				"icon": "icon.png",
+				"fileformats": [
+					{ "format": "Valve" },
+					{ "format": "Standard" },
+					{ "format": "Quake2" },
+					{ "format": "Quake2 (Valve)" },
+					{ "format": "Quake3" },
+					{ "format": "Quake3 (Valve)" },
+					{ "format": "Quake3 (legacy)" }
+				],
+				"filesystem": {
+					"searchpath": "%s",
+					"packageformat": { "extension": ".zip", "format": "zip" }
+				},
+				"materials": {
+					"root": "%s",
+					"extensions": [".bmp", ".exr", ".hdr", ".jpeg", ".jpg", ".png", ".tga", ".webp", ".D", ".C"],
+					%s
+					%s
+					"attribute": "wad"
+				},
+				"entities": {
+					"definitions": [ "%s" ],
+					"defaultcolor": "1.0 0.0 1.0 1.0",
+					"scale": %s
+				},
+				"tags": {
+					"brush": [
+						%s
+					],
+					"brushface": [
+						%s
+					]
+				},
+				"faceattribs": { 
+					"defaults": {
+						%s
+					},
+					"contentflags": [
+						%s
+					],
+					"surfaceflags": [
+						%s
+					]
+				},
+				"softMapBounds":"%s"
+			}
+			"""%[
+				version,
+				game_name,
+				base_path,
+				path_textures,
+				exclude_textures,
+				palette_str,
+				fgd_filename,
+				scaling,
+				brush_tags,
+				brush_face_tags,
+				uv_scale_str,
+				content_flags_str,
+				surface_flags_str,
+				soft_bounds_str
+			])
+		4:
+			file.store_string("""
+			{
+				"version": 4,
+				"name": "%s",
+				"icon": "icon.png",
+				"fileformats": [
+					{ "format": "Valve" },
+					{ "format": "Standard" },
+					{ "format": "Quake2" },
+					{ "format": "Quake2 (Valve)" },
+					{ "format": "Quake3" },
+					{ "format": "Quake3 (Valve)" },
+					{ "format": "Quake3 (legacy)" }
+				],
+				"filesystem": {
+					"searchpath": "%s",
+					"packageformat": { "extension": ".zip", "format": "zip" }
+				},
+				"textures": {
+					"package": { "type": "directory", "root": "%s" },
+					"format": { "extensions": ["jpg", "jpeg", "tga", "png", "D", "C"], "format": "image" },
+					%s
+					%s
+					"attribute": ["_tb_textures", "wad"]
+				},
+				"entities": {
+					"definitions": [ "%s" ],
+					"defaultcolor": "1.0 0.0 1.0 1.0",
+					"modelformats": [ "bsp, mdl, md2" ],
+					"scale": %s
+				},
+				"tags": {
+					"brush": [
+						%s
+					],
+					"brushface": [
+						%s
+					]
+				},
+				"faceattribs": { 
+					"defaults": {
+						%s
+					},
+					"contentflags": [
+						%s
+					],
+					"surfaceflags": [
+						%s
+					]
+				},
+				"softMapBounds":"%s"
+			}
+			"""%[
+				game_name,
+				base_path,
+				path_textures,
+				exclude_textures,
+				palette_str,
+				fgd_filename,
+				scaling,
+				brush_tags,
+				brush_face_tags,
+				uv_scale_str,
+				content_flags_str,
+				surface_flags_str,
+				soft_bounds_str
+			])
+		_:
+			printerr("Cannot export trenchbroom config: Unsupported config version")
+	file.close()
 
 ## Returns list of non-rendered texture patterns
 func get_non_rendered_textures() -> PackedStringArray:

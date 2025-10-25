@@ -215,7 +215,7 @@ func _create_texture_map() -> void:
 	for texturename in map.texturenames:
 		_materials[texturename] = placeholder
 		_textures[texturename] = null
-		_texture_sizes[texturename] = Vector2.ONE * settings.scaling
+		_texture_sizes[texturename] = settings.default_uv_scale * settings.scaling
 		_alphatests[texturename] = false
 		registered_materials.append(texturename)
 	for tag in settings.smart_tags:
@@ -239,7 +239,7 @@ func _create_texture_map() -> void:
 			if registered_materials.has(mat_name): continue
 			_materials[mat_name] = placeholder
 			_textures[mat_name] = null
-			_texture_sizes[mat_name] = Vector2.ONE * settings.scaling
+			_texture_sizes[mat_name] = settings.default_uv_scale * settings.scaling
 			_alphatests[mat_name] = false
 			registered_materials.append(mat_name)
 
@@ -874,10 +874,10 @@ func _should_pathfind(texture: StringName, classname: String, surface: int, cont
 	return _is_pathfinding_texture(texture) && _is_pathfinding_class(classname) && _is_pathfinding_surface_flag(surface) && _is_pathfinding_content_flag(content)
 
 func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
-	var tex_uv := Vector2.ONE
+	var tex_uv := settings.default_uv_scale
 	var texture_size: Vector2 = _texture_sizes[face.texture]
 	if face.uv_format == QEntity.FaceFormat.VALVE_220:
-		tex_uv = Vector2(face.u_axis.dot(vertex), face.v_axis.dot(vertex))
+		tex_uv *= Vector2(face.u_axis.dot(vertex), face.v_axis.dot(vertex))
 		tex_uv += (face.uv.origin * face.uv.get_scale())
 		tex_uv.x /= face.uv.x.x
 		tex_uv.y /= face.uv.y.y
@@ -888,11 +888,11 @@ func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 		var ny := absf(face.plane.normal.dot(Vector3.UP))
 		var nz := absf(face.plane.normal.dot(Vector3.FORWARD))
 		if ny >= nx and ny >= nz:
-			tex_uv = Vector2(vertex.x, -vertex.z)
+			tex_uv *= Vector2(vertex.x, -vertex.z)
 		elif nx >= ny and nx >= nz:
-			tex_uv = Vector2(vertex.y, -vertex.z)
+			tex_uv *= Vector2(vertex.y, -vertex.z)
 		else:
-			tex_uv = Vector2(vertex.x, vertex.y)
+			tex_uv *= Vector2(vertex.x, vertex.y)
 		tex_uv = tex_uv.rotated(face.uv.get_rotation())
 		tex_uv /= face.uv.get_scale()
 		tex_uv += face.uv.origin
