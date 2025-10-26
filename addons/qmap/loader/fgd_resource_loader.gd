@@ -39,10 +39,10 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 	entity_pattern.compile(r"@(\w+)([^\n=]*)\s*=\s*(\w+)\s*[:\s]\s*([^\n=]*)\s*(\[[^@]*)")
 	for r_entity in entity_pattern.search_all(contents):
 		var new_class := FGDClass.new()
-		match r_entity.get_string(1):
-			"BaseClass": new_class.class_type = FGDClass.ClassType.BASE
-			"SolidClass": new_class.class_type = FGDClass.ClassType.SOLID
-			"PointClass": new_class.class_type = FGDClass.ClassType.POINT
+		match r_entity.get_string(1).to_lower():
+			"baseclass": new_class.class_type = FGDClass.ClassType.BASE
+			"solidclass": new_class.class_type = FGDClass.ClassType.SOLID
+			"pointclass": new_class.class_type = FGDClass.ClassType.POINT
 			_: continue
 		new_class.description = r_entity.get_string(4).strip_edges().trim_prefix('"').trim_suffix('"')
 		# Pare class helper functions

@@ -62,47 +62,48 @@ func _save(resource: Resource, path: String, flags: int) -> Error:
 		# Write properties
 		if fgd.classes[key].properties.size() > 0:
 			file.store_string("\n[\n")
+			var count: int = 0
+			var max: int = fgd.classes[key].properties.size()
 			for prop: String in fgd.classes[key].properties.keys():
+				var wrote_display_name: bool
 				# Write property internal name
 				file.store_string("\t%s"%prop.replace("#","").replace(".","").replace('"',"").replace(" ",""))
 				# Write property type
 				match fgd.classes[key].properties[prop].type:
-					FGDEntityProperty.PropertyType.STRING: file.store_string("(string) ")
-					FGDEntityProperty.PropertyType.INTEGER: file.store_string("(integer) ")
-					FGDEntityProperty.PropertyType.FLOAT: file.store_string("(float) ")
-					FGDEntityProperty.PropertyType.FLAGS: file.store_string("(flags) ")
-					FGDEntityProperty.PropertyType.CHOICES: file.store_string("(choices) ")
-					FGDEntityProperty.PropertyType.COLOR_255: file.store_string("(color255) ")
-					FGDEntityProperty.PropertyType.COLOR_1: file.store_string("(color1) ")
-					FGDEntityProperty.PropertyType.ANGLE: file.store_string("(angle) ")
-					FGDEntityProperty.PropertyType.TARGET_SOURCE: file.store_string("(target_source) ")
-					FGDEntityProperty.PropertyType.TARGET_DESTINATION: file.store_string("(target_destination) ")
-					FGDEntityProperty.PropertyType.DECAL: file.store_string("(decal) ")
-					FGDEntityProperty.PropertyType.STUDIO: file.store_string("(studio) ")
-					FGDEntityProperty.PropertyType.SPRITE: file.store_string("(sprite) ")
-					FGDEntityProperty.PropertyType.SCALE: file.store_string("(scale) ")
-					FGDEntityProperty.PropertyType.VECTOR: file.store_string("(vector) ")
+					FGDEntityProperty.PropertyType.STRING: file.store_string("(string)")
+					FGDEntityProperty.PropertyType.INTEGER: file.store_string("(integer)")
+					FGDEntityProperty.PropertyType.FLOAT: file.store_string("(float)")
+					FGDEntityProperty.PropertyType.FLAGS: file.store_string("(flags)")
+					FGDEntityProperty.PropertyType.CHOICES: file.store_string("(choices)")
+					FGDEntityProperty.PropertyType.COLOR_255: file.store_string("(color255)")
+					FGDEntityProperty.PropertyType.COLOR_1: file.store_string("(color1)")
+					FGDEntityProperty.PropertyType.ANGLE: file.store_string("(angle)")
+					FGDEntityProperty.PropertyType.TARGET_SOURCE: file.store_string("(target_source)")
+					FGDEntityProperty.PropertyType.TARGET_DESTINATION: file.store_string("(target_destination)")
+					FGDEntityProperty.PropertyType.DECAL: file.store_string("(decal)")
+					FGDEntityProperty.PropertyType.STUDIO: file.store_string("(studio)")
+					FGDEntityProperty.PropertyType.SPRITE: file.store_string("(sprite)")
+					FGDEntityProperty.PropertyType.SCALE: file.store_string("(scale)")
+					FGDEntityProperty.PropertyType.VECTOR: file.store_string("(vector)")
 				# Write property display name if present
 				if !fgd.classes[key].properties[prop].display_name.is_empty():
-					file.store_string(': "%s" '%fgd.classes[key].properties[prop].display_name.replace('"', "'"))
+					file.store_string(' : "%s"'%fgd.classes[key].properties[prop].display_name.replace('"', "'"))
+					wrote_display_name = true
 				# Write property default value if present
 				if !fgd.classes[key].properties[prop].default_value.is_empty():
 					if !fgd.classes[key].properties[prop].type == FGDEntityProperty.PropertyType.INTEGER && !fgd.classes[key].properties[prop].type == FGDEntityProperty.PropertyType.FLAGS && !fgd.classes[key].properties[prop].type == FGDEntityProperty.PropertyType.CHOICES:
-						file.store_string(': "')
+						file.store_string(' : "%s" '%fgd.classes[key].properties[prop].default_value.replace('"', "'"))
+					elif wrote_display_name:
+						file.store_string(' : %s'%fgd.classes[key].properties[prop].default_value.replace('"', "'").to_int())
 					else:
-						file.store_string(': ')
-					file.store_string("%s"%fgd.classes[key].properties[prop].default_value.replace('"', "'"))
-					if !fgd.classes[key].properties[prop].type == FGDEntityProperty.PropertyType.INTEGER && !fgd.classes[key].properties[prop].type == FGDEntityProperty.PropertyType.FLAGS && !fgd.classes[key].properties[prop].type == FGDEntityProperty.PropertyType.CHOICES:
-						file.store_string('" ')
-					else:
-						file.store_string(' ')
+						file.store_string(' : : %s'%fgd.classes[key].properties[prop].default_value.replace('"', "'").to_int())
 				# Write tooltip if present
 				if !fgd.classes[key].properties[prop].display_tooltip.is_empty():
-					file.store_string(': "%s" '%fgd.classes[key].properties[prop].display_tooltip.replace('"', "'"))
+					file.store_string(' : "%s" '%fgd.classes[key].properties[prop].display_tooltip.replace('"', "'"))
 				# Write property choices / flags
 				if fgd.classes[key].properties[prop].choices.size() > 0:
 					if fgd.classes[key].properties[prop].type == FGDEntityProperty.PropertyType.FLAGS || fgd.classes[key].properties[prop].type == FGDEntityProperty.PropertyType.CHOICES:
-						file.store_string("=\n\t[\n")
+						file.store_string(" =\n\t[\n")
 						for i in fgd.classes[key].properties[prop].choices.keys():
 							file.store_string('\t\t%s : "%s"'%[i, fgd.classes[key].properties[prop].choices[i].replace('"', "'")])
 							if fgd.classes[key].properties[prop].type == FGDEntityProperty.PropertyType.FLAGS:
@@ -112,11 +113,10 @@ func _save(resource: Resource, path: String, flags: int) -> Error:
 									file.store_string(" : 0\n")
 							else:
 								file.store_string("\n")
-						file.store_string("\t]\n")
-					else:
-						file.store_string("\n")
-				else:
-					file.store_string("\n")
+						file.store_string("\t]")
+				count += 1
+				if count < max: file.store_string("\n")
+				else: file.store_string("\n")
 			file.store_string("]\n")
 		else:
 			file.store_string("[]\n")
