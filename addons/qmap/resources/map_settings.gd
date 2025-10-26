@@ -155,7 +155,7 @@ class_name QMapSettings extends Resource
 
 ## Exports current configuration to Trenchbroom (Editor Only)
 func _export_to_trenchbroom() -> void:
-	var local_settings := EditorInterface.get_editor_settings()
+	var local_settings: Object = Engine.get_singleton("EditorInterface").call("get_editor_settings")
 	var games_dir: String = local_settings.get_setting("qmap/trenchbroom/games_config_dir")
 	var game_name: String = ProjectSettings.get_setting("application/config/name", "")
 	var icon_path: String = ProjectSettings.get_setting("application/config/icon", "")
