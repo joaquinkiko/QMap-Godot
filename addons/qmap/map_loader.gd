@@ -306,14 +306,13 @@ func _include_preloaded_wads() -> void:
 
 ## Fill [member _wads] with map specific wads
 func _load_wads(index: int) -> void:
-	for base_path in settings.get_paths_wads(map.mods):
-		if _current_wad_paths.has("%s/%s"%[base_path, map.wad_paths[index]]): continue
-		if ResourceLoader.exists("%s/%s"%[base_path, map.wad_paths[index]]):
-			if verbose: print("\t\t-Loading WAD: %s"%map.wad_paths[index])
-			var wad: WAD = ResourceLoader.load("%s/%s"%[base_path, map.wad_paths[index]])
-			if wad != null:
-				_wads.append(wad)
-				return
+	if _current_wad_paths.has("res://%s"%map.wad_paths[index]): return
+	if ResourceLoader.exists("res://%s"%map.wad_paths[index]):
+		if verbose: print("\t\t-Loading WAD: %s"%map.wad_paths[index])
+		var wad: WAD = ResourceLoader.load("res://%s"%map.wad_paths[index])
+		if wad != null:
+			_wads.append(wad)
+			return
 	printerr("\t\t-Missing WAD: %s"%map.wad_paths[index])
 
 ## Create materials for [member _materials]
