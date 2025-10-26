@@ -410,6 +410,7 @@ func _export_to_trenchbroom() -> void:
 		_:
 			printerr("Cannot export trenchbroom config: Unsupported config version")
 	file.close()
+	print("Successfully exported config to: %s"%config_path)
 
 ## Returns list of non-rendered texture patterns
 func get_non_rendered_textures() -> PackedStringArray:
