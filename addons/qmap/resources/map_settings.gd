@@ -50,7 +50,7 @@ class_name QMapSettings extends Resource
 ## Path relative to [base_path] to load Scenes
 @export var path_scenes: StringName = &"scenes"
 ## Path to default palette relative to [member base_path]
-@export var path_palette: StringName = &""
+@export var path_palette: StringName = &"palette.lmp"
 @export_group("Default Material")
 ## Default material for new textures
 @export var default_material: Material
