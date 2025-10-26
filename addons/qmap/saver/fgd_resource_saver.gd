@@ -84,7 +84,9 @@ func _save(resource: Resource, path: String, flags: int) -> Error:
 					FGDEntityProperty.PropertyType.STUDIO: file.store_string("(studio)")
 					FGDEntityProperty.PropertyType.SPRITE: file.store_string("(sprite)")
 					FGDEntityProperty.PropertyType.SCALE: file.store_string("(scale)")
+					FGDEntityProperty.PropertyType.SOUND: file.store_string("(sound)")
 					FGDEntityProperty.PropertyType.VECTOR: file.store_string("(vector)")
+					_: file.store_string("(string)")
 				# Write property display name if present
 				if !fgd.classes[key].properties[prop].display_name.is_empty():
 					file.store_string(' : "%s"'%fgd.classes[key].properties[prop].display_name.replace('"', "'"))
