@@ -197,6 +197,10 @@ func _export_to_trenchbroom() -> void:
 		return
 	var version: int = local_settings.get_setting("qmap/trenchbroom/config_version")
 	if version == 0: version = 9
+	var included_textures: String = ""
+	for extension in texture_extensions:
+		included_textures += '".%s", '%extension
+	included_textures += '".D", ".C"'
 	var exclude_textures: String = ""
 	if use_pbr:
 		exclude_textures += '"excludes": [ '
@@ -295,7 +299,7 @@ func _export_to_trenchbroom() -> void:
 	},
 	"materials": {
 		"root": "%s",
-		"extensions": [".bmp", ".exr", ".hdr", ".jpeg", ".jpg", ".png", ".tga", ".webp", ".D", ".C"],
+		"extensions": [%s],
 		%s
 		%s
 		"attribute": "wad"
@@ -331,6 +335,7 @@ func _export_to_trenchbroom() -> void:
 				game_name,
 				base_path,
 				path_textures,
+				included_textures,
 				exclude_textures,
 				palette_str,
 				fgd_filename,
@@ -362,7 +367,7 @@ func _export_to_trenchbroom() -> void:
 	},
 	"textures": {
 		"package": { "type": "directory", "root": "%s" },
-		"format": { "extensions": ["jpg", "jpeg", "tga", "png", "D", "C"], "format": "image" },
+		"format": { "extensions": [%s], "format": "image" },
 		%s
 		%s
 		"attribute": ["_tb_textures", "wad"]
@@ -398,6 +403,7 @@ func _export_to_trenchbroom() -> void:
 				game_name,
 				base_path,
 				path_textures,
+				included_textures.replace(".",""),
 				exclude_textures,
 				palette_str,
 				fgd_filename,
