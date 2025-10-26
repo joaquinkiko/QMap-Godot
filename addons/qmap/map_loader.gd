@@ -1109,7 +1109,7 @@ func _worldspawn_generation(properties: Dictionary[StringName, String], node: No
 		var skyname: String = properties.get(settings.worldspawn_skyname, settings.default_skyname)
 		var sky_texture: Texture2D
 		if skyname != "":
-			for path in settings.get_paths_textures(map.mods): for extension in settings.texture_extensions:
+			for path in settings.get_paths_skies(map.mods): for extension in settings.texture_extensions:
 				if ResourceLoader.exists("%s/%s.%s"%[path, skyname, extension]):
 					sky_texture= ResourceLoader.load("%s/%s.%s"%[path, skyname, extension])
 		if sky_texture != null:
@@ -1119,7 +1119,7 @@ func _worldspawn_generation(properties: Dictionary[StringName, String], node: No
 				world_env.environment.sky.sky_material = settings.custom_sky_material
 			else:
 				world_env.environment.sky.sky_material = PanoramaSkyMaterial.new()
-			for path in settings.get_paths_textures(map.mods): for extension in settings.texture_extensions:
+			for path in settings.get_paths_skies(map.mods): for extension in settings.texture_extensions:
 				if ResourceLoader.exists("%s/%s.%s"%[path, skyname, extension]):
 					if settings.custom_sky_material != null:
 						world_env.environment.sky.sky_material.set(settings.custom_sky_texture_path, sky_texture)

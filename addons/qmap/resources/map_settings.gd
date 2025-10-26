@@ -37,6 +37,8 @@ class_name QMapSettings extends Resource
 @export var base_path: StringName = &"."
 ## Path relative to [base_path] to load textures and Wads
 @export var path_textures: StringName = &"textures"
+## Path relative to [base_path] to load skyboxes
+@export var path_skies: StringName = &"sky"
 ## Path relative to [base_path] to decal textures
 @export var path_decals: StringName = &"decals"
 ## Path relative to [base_path] to load materials
@@ -603,6 +605,14 @@ func get_paths_textures(mods := PackedStringArray([])) -> PackedStringArray:
 	output.append("res://%s/%s"%[base_path, path_textures])
 	for mod in mods:
 		output.append("res://%s/%s"%[mod, path_textures])
+	return output
+
+## Sky paths (including mods)
+func get_paths_skies(mods := PackedStringArray([])) -> PackedStringArray:
+	var output: PackedStringArray
+	output.append("res://%s/%s"%[base_path, path_skies])
+	for mod in mods:
+		output.append("res://%s/%s"%[mod, path_skies])
 	return output
 
 ## Decal  texture paths (including mods)
