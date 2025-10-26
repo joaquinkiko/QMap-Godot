@@ -29,7 +29,7 @@ class_name QMapSettings extends Resource
 ## Wad files to always load during map generation
 @export var extra_wads: Array[WAD]
 ## Valid texture extensions to load from
-@export var texture_extensions: PackedStringArray = ["png", "jpg", "jpeg", "bmp", "tga"]
+@export var texture_extensions: PackedStringArray = ["png", "jpg", "jpeg", "bmp", "tga", "exr", "webp"]
 ## Valid material extensions to load from
 @export var material_extensions: PackedStringArray = ["tres"]
 @export_group("Resource Paths")
