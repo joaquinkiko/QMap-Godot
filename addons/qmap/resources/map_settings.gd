@@ -154,7 +154,7 @@ class_name QMapSettings extends Resource
 ## Default value of [member worldspawn_ao_radius]
 @export var default_ao_radius: String = "1"
 ## Default value of [member worlspawn_fog_enabled]
-@export var default_fog_enabled: String = "1"
+@export var default_fog_enabled: String = "0"
 ## Default value of [member worlspawn_fog_density]
 @export var default_fog_density: String = "0.01"
 ## Default value of [member worlspawn_fog_height]
