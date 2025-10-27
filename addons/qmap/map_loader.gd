@@ -53,6 +53,9 @@ class SolidData extends RefCounted:
 ## Emitted at map loading stages (value from 0.0-1.0)
 signal progress(percentage: float, task: String)
 
+## Static reference to last [MapLoader] added to [SceneTree]. May return null
+static var current: MapLoader
+
 ## Path to [QMap] to load on [method load_map]
 @export_file("*.map") var map_path: String
 ## [QMap] to load on [method load_map]
@@ -85,8 +88,70 @@ var _target_destinations: Dictionary[StringName, Node]
 var _alphatests: Dictionary[StringName, bool]
 var _nav_regions: Array[NavigationRegion3D]
 
+## Spawns a new entity with specified [param properties] and [param classname]
+func spawn_entity(classname: String, properties: Dictionary[StringName, String] = {}, origin := Vector3.ZERO) -> Node:
+	var entity := QEntity.new()
+	var node: Node
+	entity.properties.assign(properties)
+	entity.classname = classname
+	origin *= settings.scaling
+	entity.properties.set(&"origin", "%s %s %s"%[origin.z, origin.x, origin.y])
+	entity.add_base_properties(settings.fgd)
+	if !settings.fgd.classes.has(entity.classname): node = Node.new()
+	else:
+		for path in settings.get_paths_scenes(map.mods): for extension in ["tscn","scn"]:
+			if ResourceLoader.exists("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension]):
+				var scene: PackedScene = ResourceLoader.load("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension])
+				if scene != null:
+					node = scene.instantiate()
+	if node == null: node = Node3D.new()
+	node.name = entity.classname.capitalize().replace(" ", "")
+	node.set(&"position", _convert_coordinates(entity.origin * settings._scale_factor))
+	node.set(&"rotation_degrees", entity.angle)
+	var current_scale = node.get(&"scale")
+	if current_scale != null: node.set(&"scale", current_scale * entity.scale)
+	var parsed_properties := entity.get_parsed_properties(settings, map.mods)
+	for key in parsed_properties.keys():
+		if settings.fgd.classes.has(entity.classname) && settings.fgd.classes[entity.classname].properties.has(key):
+			if settings.fgd.classes[entity.classname].properties[key].type == FGDEntityProperty.PropertyType.TARGET_SOURCE:
+				parsed_properties[key] = find_target_destination(parsed_properties[key])
+			node.set(key, parsed_properties[key])
+	if node.has_method(&"_apply_map_properties"):
+		node.call(&"_apply_map_properties", parsed_properties)
+	add_child(node)
+	return node
+
+## Allows a node to be discovered via [method find_target_destination]
+func set_target_destination(target_name: String, node: Node) -> void:
+	if node == null: printerr("Cannot set target destination on NULL node")
+	node.add_to_group(&"target_destination")
+	node.set_meta(&"target_destination", target_name)
+
+## Attempts to find a target destination (NOTE: node must be child of this [MapLoader])
+func find_target_destination(target_name: String) -> Node:
+	for node in get_tree().get_nodes_in_group(&"target_destination"):
+		if node.get_parent() == self || node.get_parent().get_parent() == self:
+			if node.get_meta(&"target_destination", "") == target_name: return node
+	return null
+
+## Returns list of spawned entities, use [param filter] with * and ? wildcards
+## to filter by node name (typically this is entity classname)
+## (NOTE: Only returns nodes that are children of this [MapLoader])
+func get_entities(filter: String) -> Array[Node]:
+	var output: Array[Node]
+	for node in get_tree().get_nodes_in_group(&"entity"):
+		if node.get_parent() == self || node.get_parent().get_parent() == self:
+			if node.name.match(filter): output.append(node)
+	return output
+
+func _enter_tree() -> void:
+	current = self
+
+func _exit_tree() -> void:
+	if current == self: current = null
+
 func _ready() -> void:
-	if auto_load_map: load_map()
+	if auto_load_map: await load_map()
 
 func _thread_group_task(task: Callable, elements: int, task_debug: String) -> void:
 	if verbose: print("\t-%s..."%task_debug)
@@ -495,6 +560,7 @@ func _generate_entities(index: int) -> void:
 			_entities[entity] = StaticBody3D.new()
 		else:
 			_entities[entity] = Node.new()
+		_entities[entity].add_to_group(&"entity")
 		return
 	for path in settings.get_paths_scenes(map.mods): for extension in ["tscn","scn"]:
 		if ResourceLoader.exists("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension]):
@@ -502,12 +568,14 @@ func _generate_entities(index: int) -> void:
 			if scene != null:
 				_entities[entity] = scene.instantiate()
 				_get_target_destinations(entity, _entities[entity])
+				_entities[entity].add_to_group(&"entity")
 				return
 	if entity.brushes.size() > 0:
 		_entities[entity] = StaticBody3D.new()
 	else:
 		_entities[entity] = Node3D.new()
 	_get_target_destinations(entity, _entities[entity])
+	_entities[entity].add_to_group(&"entity")
 	return
 
 ## Checks if node should be added to [member _target_destinations]
@@ -517,6 +585,8 @@ func _get_target_destinations(entity: QEntity, node: Node) -> void:
 			if settings.fgd.classes[entity.classname].properties.has(key):
 				if settings.fgd.classes[entity.classname].properties[key].type == FGDEntityProperty.PropertyType.TARGET_DESTINATION:
 					_target_destinations[entity.properties[key]] = node
+					node.add_to_group(&"target_destination")
+					node.set_meta(&"target_destination", entity.properties[key])
 
 ## Find vertices, normals, and tangents
 func _generate_solid_data(index: int) -> void:
