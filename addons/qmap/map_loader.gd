@@ -66,6 +66,8 @@ var map: QMap
 @export var auto_load_internal_wads: bool = true
 ## While true main thread will be paused during loading (may improve loading speed)
 @export var pause_main_thread_while_loading: bool = true
+## While true, groups and layers will be grouped together under a [Node3D]
+@export var group_nodes: bool = true
 @export_group("Debug Settings")
 ## When true will print debug info while map loads
 @export var verbose: bool = true
@@ -1062,12 +1064,37 @@ func _pass_to_scene_tree() -> void:
 		nav_region.travel_cost = entity.properties.get(settings.property_nav_travel_cost, "1").to_float()
 		_nav_regions.append(nav_region)
 		path_csg_to_compile[node].queue_free()
+	# Define groups and layers
+	var func_groups: Dictionary[int, Node]
+	var func_group_names: Dictionary[int, StringName]
+	var omitted_indices: PackedInt32Array
+	for entity: QEntity in _entities.keys():
+		match entity.group_type:
+			QEntity.GroupingType.LAYER, QEntity.GroupingType.GROUP:
+				if entity.omit_from_export: omitted_indices.append(entity.group_id)
+				elif group_nodes:
+					var group_node := Node.new()
+					group_node.name = entity.group_name
+					func_groups.set(entity.group_id, group_node)
+				func_group_names.set(entity.group_id, entity.group_name)
 	# Move entities to Scene Tree
 	for entity: QEntity in _entities.keys():
 		var node := _entities[entity]
-		add_child(node, true)
+		if entity.group_type == QEntity.GroupingType.GROUP:
+			node.queue_free()
+		elif omitted_indices.has(entity.group_id):
+			node.queue_free()
+		else:
+			if entity.group_id != -1 && group_nodes && func_groups.has(entity.group_id):
+				func_groups[entity.group_id].add_child(node, true)
+			else:
+				add_child(node, true)
+			if func_group_names.has(entity.group_id):
+				node.add_to_group(func_group_names[entity.group_id])
+	if group_nodes: for group_node in func_groups.values(): add_child(group_node, true)
 	# Bake pathfinding
 	for nav_region in _nav_regions:
+		if nav_region == null || nav_region.is_queued_for_deletion(): continue
 		nav_region.bake_navigation_mesh()
 		while nav_region.is_baking(): await get_tree().process_frame
 		for child in nav_region.get_children(): child.queue_free()
