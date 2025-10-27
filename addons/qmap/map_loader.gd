@@ -67,6 +67,8 @@ var map: QMap
 @export var auto_load_map: bool = true
 ## When true will load any [WAD] listed in [QMap] properties under the key "wads"
 @export var auto_load_internal_wads: bool = true
+## While true, will thread tasks
+@export var allow_threading: bool = true
 ## While true main thread will be paused during loading (may improve loading speed)
 @export var pause_main_thread_while_loading: bool = true
 ## While true, groups and layers will be grouped together under a [Node3D]
@@ -156,29 +158,34 @@ func _ready() -> void:
 func _thread_group_task(task: Callable, elements: int, task_debug: String) -> void:
 	if verbose: print("\t-%s..."%task_debug)
 	var interval_time := Time.get_ticks_msec()
-	var task_id := WorkerThreadPool.add_group_task(task, elements, -1, false, task_debug)
-	if !pause_main_thread_while_loading: while !WorkerThreadPool.is_group_task_completed(task_id):
-		await get_tree().process_frame
-	WorkerThreadPool.wait_for_group_task_completion(task_id)
+	if allow_threading:
+		var task_id := WorkerThreadPool.add_group_task(task, elements, -1, false, task_debug)
+		if !pause_main_thread_while_loading: while !WorkerThreadPool.is_group_task_completed(task_id):
+			await get_tree().process_frame
+		WorkerThreadPool.wait_for_group_task_completion(task_id)
+	else:
+		for n in elements: task.call(n)
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 
 func _thread_individual_taks(tasks: Array[Callable], task_debug: String) -> void:
 	if verbose: print("\t-%s..."%task_debug)
 	var interval_time := Time.get_ticks_msec()
-	var task_ids: PackedInt32Array
-	task_ids.resize(tasks.size())
-	for n in tasks.size():
-		task_ids[n] = WorkerThreadPool.add_task(tasks[n], false, "%s (%s)"%[task_debug, n])
-	if !pause_main_thread_while_loading:
-		var is_completed: bool
-		while !is_completed:
-			is_completed = true
-			for n in task_ids:
-				if !WorkerThreadPool.is_task_completed(n):
-					is_completed = false
-					break
-			await get_tree().process_frame
-	for n in task_ids: WorkerThreadPool.wait_for_task_completion(n)
+	if allow_threading:
+		var task_ids: PackedInt32Array
+		task_ids.resize(tasks.size())
+		for n in tasks.size():
+			task_ids[n] = WorkerThreadPool.add_task(tasks[n], false, "%s (%s)"%[task_debug, n])
+		if !pause_main_thread_while_loading:
+			var is_completed: bool
+			while !is_completed:
+				is_completed = true
+				for n in task_ids:
+					if !WorkerThreadPool.is_task_completed(n):
+						is_completed = false
+						break
+				await get_tree().process_frame
+		for n in task_ids: WorkerThreadPool.wait_for_task_completion(n)
+	else: for task in tasks: task.call()
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 
 ## Convert YZX coordinates to XYZ coordinates
