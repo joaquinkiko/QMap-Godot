@@ -30,6 +30,7 @@ texture_extensions = PackedStringArray("png", "jpg", "jpeg", "bmp", "tga")
 material_extensions = PackedStringArray("tres")
 base_path = &"."
 path_textures = &"textures"
+path_skies = &"sky"
 path_decals = &"decals"
 path_materials = &"materials"
 path_sounds = &"sounds"
