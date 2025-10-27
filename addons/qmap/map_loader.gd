@@ -274,6 +274,7 @@ func load_map() -> Error:
 	_alphatests.clear()
 	_target_destinations.clear()
 	_nav_regions.clear()
+	map = null
 	if verbose: print("Finished generating map in %sms"%(Time.get_ticks_msec() - start_time))
 	progress.emit(1, "Finished")
 	return OK
