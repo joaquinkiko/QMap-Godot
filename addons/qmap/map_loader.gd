@@ -1232,6 +1232,20 @@ func _worldspawn_generation(properties: Dictionary[StringName, String], node: No
 						world_env.environment.sky.sky_material.panorama = sky_texture
 			if !properties.has(settings.worldspawn_ambient_color):
 				world_env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+		# Fog
+		world_env.environment.fog_enabled = bool(properties.get(settings.default_fog_enabled, settings.default_fog_enabled).to_int())
+		world_env.environment.fog_density = properties.get(settings.worlspawn_fog_density, settings.default_fog_density).to_float()
+		world_env.environment.fog_height = properties.get(settings.worlspawn_fog_density, settings.default_fog_density).to_float()
+		world_env.environment.fog_height_density = properties.get(settings.worlspawn_fog_density, settings.default_fog_density).to_float()
+		var fog_color_raw: PackedStringArray = properties.get(settings.worlspawn_fog_color, settings.default_fog_color).split(" ", false)
+		if fog_color_raw.size() >= 3:
+			world_env.environment.fog_light_color = Color8(
+				fog_color_raw[0].to_float(),
+				fog_color_raw[1].to_float(),
+				fog_color_raw[2].to_float()
+			)
+		world_env.environment.fog_light_energy = properties.get(settings.worlspawn_fog_density, settings.default_fog_density).to_float()
+		world_env.environment.fog_sky_affect = properties.get(settings.worlspawn_fog_sky_affect, settings.default_fog_sky_affect).to_float()
 	# Sunlight generation
 	if settings.worldspawn_generate_sunlight:
 		var dir_light: DirectionalLight3D

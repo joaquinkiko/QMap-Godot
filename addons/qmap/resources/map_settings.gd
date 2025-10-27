@@ -116,6 +116,20 @@ class_name QMapSettings extends Resource
 @export var worldspawn_ao_intensity: StringName = &"_dirtscale"
 ## Worldspawn property for enabling ambient occlusion
 @export var worldspawn_ao_radius: StringName = &"_dirtgain"
+## Worldspawn property for enabling fog
+@export var worlspawn_fog_enabled: StringName = &"_fog_enabled"
+## Worldspawn property for setting fog density
+@export var worlspawn_fog_density: StringName = &"_fog_density"
+## Worldspawn property for setting fog height
+@export var worlspawn_fog_height: StringName = &"_fog_height"
+## Worldspawn property for setting fog height density
+@export var worlspawn_fog_height_density: StringName = &"_fog_height_density"
+## Worldspawn property for setting fog light color
+@export var worlspawn_fog_color: StringName = &"_fog_color"
+## Worldspawn property for setting fog light level
+@export var worlspawn_fog_light: StringName = &"_fog_light"
+## Worldspawn property for setting fog sky affect
+@export var worlspawn_fog_sky_affect: StringName = &"_fog_sky_affect"
 @export_group("Worldspawn Properties Defaults")
 ## Default value of [member worldspawn_ambient_light]
 @export var default_ambient_light: String = "0.2"
@@ -139,6 +153,20 @@ class_name QMapSettings extends Resource
 @export var default_ao_intensity: String = "2"
 ## Default value of [member worldspawn_ao_radius]
 @export var default_ao_radius: String = "1"
+## Default value of [member worlspawn_fog_enabled]
+@export var default_fog_enabled: String = "1"
+## Default value of [member worlspawn_fog_density]
+@export var default_fog_density: String = "0.01"
+## Default value of [member worlspawn_fog_height]
+@export var default_fog_height: String = "0"
+## Default value of [member worlspawn_fog_height_density]
+@export var default_fog_height_density: String = "0"
+## Default value of [member worlspawn_fog_color]
+@export var default_fog_color: String = "132 141 155"
+## Default value of [member worlspawn_fog_light]
+@export var default_fog_light: String = "1"
+## Default value of [member worlspawn_fog_sky_affect]
+@export var default_fog_sky_affect: String = "0.1"
 @export_group("Pathfinding")
 ## If true, will generate pathfinding for solid entities
 @export var generate_pathfinding: bool = true
