@@ -5,10 +5,10 @@ func _get_recognized_extensions() -> PackedStringArray:
 	return ["lmp", "LMP"]
 
 func _handles_type(type: StringName) -> bool:
-	return ClassDB.is_parent_class(type, "Resource")
+	return ClassDB.is_parent_class(type, "ImageTexture")
 
 func _get_resource_type(path: String) -> String:
-	if path.get_extension().to_lower() == "lmp": return "Resource"
+	if path.get_extension().to_lower() == "lmp": return "ImageTexture"
 	else: return ""
 
 func _load(path: String, original_path: String, use_sub_threads: bool, cache_mode: int) -> Variant:
@@ -21,4 +21,5 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 		resource.colors[n].r8 = data[n * 3]
 		resource.colors[n].g8 = data[n * 3 + 1]
 		resource.colors[n].b8 = data[n * 3 + 2]
+	resource.refresh_image()
 	return resource

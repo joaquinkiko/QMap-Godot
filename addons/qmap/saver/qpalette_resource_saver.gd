@@ -17,4 +17,5 @@ func _save(resource: Resource, path: String, flags: int) -> Error:
 		data.append_array([color.r8,color.g8,color.b8])
 	file.store_buffer(data)
 	file.close()
+	resource.refresh_image()
 	return OK
