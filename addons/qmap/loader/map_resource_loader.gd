@@ -145,4 +145,13 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			var contents: String = line.split('"', false)[2]
 			current_entity.properties.set(key, contents)
 	file.close()
+	if Engine.is_editor_hint() && path.begins_with("res://"): 
+		if Engine.get_singleton("EditorInterface").get_editor_settings().get_setting(&"qmap/ignore_map_autosave_dir"):
+			if !DirAccess.dir_exists_absolute("%s/autosave"%path.get_base_dir()):
+				DirAccess.make_dir_recursive_absolute("%s/autosave"%path.get_base_dir())
+			if !FileAccess.file_exists("%s/autosave/.gdignore"%path.get_base_dir()):
+				var gdignore := FileAccess.open("%s/autosave/.gdignore"%path.get_base_dir(), FileAccess.WRITE)
+				if gdignore == null:
+					print("Created '%s/autosave/.gdignore'"%path.get_base_dir())
+					gdignore.close()
 	return resource

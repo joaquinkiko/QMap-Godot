@@ -1,6 +1,7 @@
 @tool
 extends EditorPlugin
 
+const PROP_AUTOSAVE_DIR := &"qmap/ignore_map_autosave_dir"
 const PROP_TRENCHBROOM_DIR := &"qmap/trenchbroom/games_config_dir"
 const PROP_TRENCHBROOM_VERSION := &"qmap/trenchbroom/config_version"
 
@@ -33,6 +34,14 @@ func _enter_tree() -> void:
 	ResourceSaver.add_resource_format_saver(qmap_saver)
 	ResourceLoader.add_resource_format_loader(lmp_loader)
 	ResourceSaver.add_resource_format_saver(lmp_saver)
+	local_settings.set_setting(PROP_AUTOSAVE_DIR, true)
+	local_settings.set_initial_value(PROP_AUTOSAVE_DIR, true, false)
+	local_settings.add_property_info({
+		"name": PROP_AUTOSAVE_DIR,
+		"type": TYPE_BOOL,
+		"hint": PROPERTY_HINT_NONE,
+		"hint_string": "When enabled will generate .gdignore in 'autosave' directory relative to map files"
+	})
 	local_settings.set_setting(PROP_TRENCHBROOM_DIR, "")
 	local_settings.set_initial_value(PROP_TRENCHBROOM_DIR, "", false)
 	local_settings.add_property_info({
