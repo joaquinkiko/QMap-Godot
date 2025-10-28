@@ -126,7 +126,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			image = Image.create_from_data(dimensions.x, dimensions.y, USE_WAD_MIPMAPS, Image.FORMAT_RGBA8, texture_data)
 			if !USE_WAD_MIPMAPS: image.generate_mipmaps()
 			resource.textures[name] = ImageTexture.create_from_image(image)
-			if resource.format == WAD3: resource.palettes[name] = current_palette
+			if resource.format == WAD3: resource.palettes[name] = current_palette.duplicate()
 			resource.mipmap_data[name] = mip_map_data
 			resource.mip_offsets[name] = mip_offsets
 		# Parse palette
