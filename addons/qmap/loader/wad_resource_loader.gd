@@ -104,6 +104,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 						data.decode_u8(palette_offset + n*3 + 3),
 						data.decode_u8(palette_offset + n*3 + 4)
 					)
+				current_palette.refresh_image()
 			# Construct texture & mipmaps
 			var image: Image
 			var texture_data: PackedByteArray
@@ -138,6 +139,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 					data.decode_u8(entry[&"offset"] + n*3 + 1),
 					data.decode_u8(entry[&"offset"] + n*3 + 2)
 				)
+			wad_palette.refresh_image(Vector2i(16, 16))
 			if entry[&"name"] == "PALETTE" || resource.palettes.is_empty():
 				current_palette = wad_palette
 			resource.palettes[entry[&"name"]] = wad_palette
