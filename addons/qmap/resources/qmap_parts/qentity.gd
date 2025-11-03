@@ -176,24 +176,7 @@ func get_parsed_properties(settings: QMapSettings, mods := PackedStringArray([])
 	if fgd_class == null:
 		parsed_properties.assign(properties)
 		return parsed_properties
-	var to_parse: Dictionary[StringName, String]
-	for base in fgd_class.base_classes:
-		if !settings.fgd.classes.has(base): continue
-		settings.fgd.classes[base]
-		for key in settings.fgd.classes[base].properties.keys():
-			to_parse.set(key, settings.fgd.classes[base].properties[key].default_value)
-			if settings.fgd.classes[base].properties[key].type == FGDEntityProperty.PropertyType.FLAGS:
-				var default_value: int
-				for flag in settings.fgd.classes[base].properties[key].default_flags:
-					default_value += flag
-				to_parse.set(key, "%s"%default_value)
-	for key in fgd_class.properties.keys():
-		to_parse.set(key, fgd_class.properties[key].default_value)
-		if fgd_class.properties[key].type == FGDEntityProperty.PropertyType.FLAGS:
-			var default_value: int
-			for flag in fgd_class.properties[key].default_flags:
-				default_value += flag
-			to_parse.set(key, "%s"%default_value)
+	var to_parse: Dictionary[StringName, String] = settings.fgd.get_default_properties(classname)
 	for key in properties.keys():
 		to_parse.set(key, properties[key])
 	for key in to_parse:
