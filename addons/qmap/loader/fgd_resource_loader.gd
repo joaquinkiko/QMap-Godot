@@ -27,6 +27,11 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 		line = line.split("//", true)[0]
 		if line.is_empty(): continue
 		else: contents += line + "\n"
+	# Parse @include
+	var include_pattern = RegEx.new()
+	include_pattern.compile(r'@include\s*"([^"]*)"')
+	for r_include in include_pattern.search_all(contents):
+		resource.base_fgds.append(r_include.get_string(1))
 	# Parse @mapsize
 	var map_size_pattern = RegEx.new()
 	map_size_pattern.compile(r"@mapsize\s*\((-?\w*),\s*(-?\w*\))")

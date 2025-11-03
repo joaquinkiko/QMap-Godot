@@ -11,6 +11,8 @@ class_name FGD extends Resource
 ## (white space will be removed)
 @export var classes: Dictionary[String, FGDClass]
 @export_group("Optional")
+## Base [FGD] resources to inheret from (they must be in same directory)
+@export var base_fgds: PackedStringArray
 ## Optional max map size in q-units
 @export var max_map_size : Vector2i
 

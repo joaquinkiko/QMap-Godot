@@ -18,6 +18,10 @@ func _save(resource: Resource, path: String, flags: int) -> Error:
 		for line in fgd.header.split("\n"):
 			file.store_string("// " + line + "\n")
 		file.store_string("\n")
+	# Write @include if present
+	if fgd.base_fgds.size() > 0:
+		for base_fgd in fgd.base_fgds: file.store_string("@include %s\n"%base_fgd)
+		file.store_string("\n")
 	# Write @mapsize if present
 	if fgd.max_map_size != Vector2i.ZERO:
 		file.store_string("@mapsize (%s, %s)\n\n"%[fgd.max_map_size.x, fgd.max_map_size.y])
