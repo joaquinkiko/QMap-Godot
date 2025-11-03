@@ -734,13 +734,11 @@ func _sort_faces(index: int) -> void:
 	var entity: QEntity = _solid_data.keys()[index]
 	var data: SolidData = _solid_data[entity]
 	if data == null: return
-	if !_is_render_class(entity.classname): return
 	var unique_surfaces: PackedStringArray
 	for brush in data.brushes:
 		if brush.is_origin: continue
 		var texture_faces: Dictionary[StringName, Array]
 		for face in brush.faces:
-			if !_is_render_texture(face.texture): continue
 			if face.override_texture.is_empty():
 				if !texture_faces.has(face.texture): texture_faces[face.texture] = []
 				texture_faces[face.texture].append(face)
@@ -759,18 +757,31 @@ func _generate_meshes(index: int) -> void:
 	var use_occlusion_culling: bool = ProjectSettings.get_setting("rendering/occlusion_culling/use_occlusion_culling", false)
 	if data == null: return
 	var arrays: Array
+	var ignore_arrays: Array
 	var convex_arrays: Array
+	var ignore_convex_arrays: Array
 	var occlusion_arrays: Array
+	var ignore_occlusion_arrays: Array
 	var path_arrays: Array
+	var ignore_path_arrays: Array
 	arrays.resize(Mesh.ARRAY_MAX)
+	ignore_arrays.resize(Mesh.ARRAY_MAX)
 	convex_arrays.resize(Mesh.ARRAY_MAX)
+	ignore_convex_arrays.resize(Mesh.ARRAY_MAX)
 	occlusion_arrays.resize(Mesh.ARRAY_MAX)
+	ignore_occlusion_arrays.resize(Mesh.ARRAY_MAX)
 	path_arrays.resize(Mesh.ARRAY_MAX)
+	ignore_path_arrays.resize(Mesh.ARRAY_MAX)
+	var ignore_material := PlaceholderMaterial.new()
 	for brush in data.brushes:
 		brush.mesh = ArrayMesh.new()
+		ignore_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		convex_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+		ignore_convex_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		path_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+		ignore_path_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		occlusion_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+		ignore_occlusion_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		for key in brush.sorted_faces:
 			var surface_index := brush.mesh.get_surface_count()
 			if surface_index == RenderingServer.MAX_MESH_SURFACES:
@@ -785,31 +796,56 @@ func _generate_meshes(index: int) -> void:
 						arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
 						arrays[Mesh.ARRAY_NORMAL].append(_convert_coordinates(face.normals[i]))
 						arrays[Mesh.ARRAY_TEX_UV].append(_get_tex_uv(face, face.vertices[i]))
+				else:
+					for i in face.indices:
+						ignore_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
 			if arrays[Mesh.ARRAY_VERTEX].size() > 0:
 				brush.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 				brush.mesh.surface_set_material(surface_index, _materials[key])
 				brush.mesh.surface_set_name(surface_index, key)
+		if ignore_arrays[Mesh.ARRAY_VERTEX].size() > 0:
+			if brush.mesh.get_surface_count() != RenderingServer.MAX_MESH_SURFACES:
+				brush.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ignore_arrays)
+			else:
+				print("\t\t-ERROR: Cannot render brush in %s: too many surfaces (over %s)!"%[entity.classname, RenderingServer.MAX_MESH_SURFACES])
 		for face in brush.faces:
 			if _should_collide(face.texture, entity.classname, face.surface_flag, face.content_flag):
 				for i in face.indices:
 					convex_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
+			else:
+				for i in face.indices:
+					ignore_convex_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
 			if _should_pathfind(face.texture, entity.classname, face.surface_flag, face.content_flag):
 				for i in face.indices:
 					path_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
-			if _should_occlude(face.texture, entity.classname, face.surface_flag, face.content_flag):
-				if !_alphatests[face.texture] && use_occlusion_culling:
-					for i in face.indices:
-						occlusion_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
+			else:
+				for i in face.indices:
+					ignore_path_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
+			if _should_occlude(face.texture, entity.classname, face.surface_flag, face.content_flag) && !_alphatests[face.texture] && use_occlusion_culling:
+				for i in face.indices:
+					occlusion_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
+			else:
+				for i in face.indices:
+					ignore_occlusion_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
 		if brush.mesh.get_surface_count() == 0: brush.mesh = null
 		if convex_arrays[Mesh.ARRAY_VERTEX].size() > 0:
 			brush.collision_mesh = ArrayMesh.new()
 			brush.collision_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, convex_arrays)
+			if ignore_convex_arrays[Mesh.ARRAY_VERTEX].size() > 0:
+				brush.collision_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ignore_convex_arrays)
+				brush.collision_mesh.surface_set_material(1, ignore_material)
 		if path_arrays[Mesh.ARRAY_VERTEX].size() > 0:
 			brush.pathfinding_mesh = ArrayMesh.new()
-			brush.pathfinding_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, convex_arrays)
+			brush.pathfinding_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, path_arrays)
+			if ignore_path_arrays[Mesh.ARRAY_VERTEX].size() > 0:
+				brush.pathfinding_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ignore_path_arrays)
+				brush.pathfinding_mesh.surface_set_material(1, ignore_material)
 		if occlusion_arrays[Mesh.ARRAY_VERTEX].size() > 0:
 			brush.occlusion_mesh = ArrayMesh.new()
 			brush.occlusion_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, occlusion_arrays)
+			if ignore_occlusion_arrays[Mesh.ARRAY_VERTEX].size() > 0:
+				brush.occlusion_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ignore_occlusion_arrays)
+				brush.occlusion_mesh.surface_set_material(1, ignore_material)
 
 ## Unrwaps render mesh UV for lightmapping
 func _unwrap_uvs(index: int) -> void:
@@ -1091,11 +1127,16 @@ func _pass_to_scene_tree() -> void:
 		var shadow_mesh := ArrayMesh.new()
 		var shadow_arrays: Array
 		shadow_arrays.resize(Mesh.ARRAY_MAX)
+		var surfaces_to_delete: PackedInt32Array
 		for n in mesh_instance.mesh.get_surface_count():
-			shadow_arrays[Mesh.ARRAY_VERTEX] = mesh_instance.mesh.surface_get_arrays(n)[Mesh.ARRAY_VERTEX]
-			shadow_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, shadow_arrays)
-			var texturename: String = mesh_instance.mesh.surface_get_material(n).get_meta(&"texturename", "")
-			mesh_instance.mesh.surface_set_name(n, texturename)
+			if mesh_instance.mesh.surface_get_material(n) != null:
+				shadow_arrays[Mesh.ARRAY_VERTEX] = mesh_instance.mesh.surface_get_arrays(n)[Mesh.ARRAY_VERTEX]
+				shadow_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, shadow_arrays)
+				var texturename: String = mesh_instance.mesh.surface_get_material(n).get_meta(&"texturename", "")
+				mesh_instance.mesh.surface_set_name(n, texturename)
+			else: surfaces_to_delete.append(n)
+		for n in surfaces_to_delete:
+			mesh_instance.mesh.surface_remove(n)
 		mesh_instance.mesh.shadow_mesh = shadow_mesh
 		node.add_child(mesh_instance)
 		csg_to_compile[node].queue_free()
@@ -1105,7 +1146,12 @@ func _pass_to_scene_tree() -> void:
 		collision_shape.debug_color = node_entities[node].get_debug_color(settings.fgd)
 		collision_shape.debug_fill = false
 		collision_shape.name = "TrimeshCollision"
-		collision_shape.shape = collision_csg_to_compile[node].bake_static_mesh().create_trimesh_shape()
+		var array_mesh: ArrayMesh = collision_csg_to_compile[node].bake_static_mesh()
+		for n in array_mesh.get_surface_count():
+			if array_mesh.surface_get_material(n) != null:
+				array_mesh.surface_remove(n)
+				break
+		collision_shape.shape = array_mesh.create_trimesh_shape()
 		node.add_child(collision_shape)
 		collision_csg_to_compile[node].queue_free()
 	# Occlusion
@@ -1114,6 +1160,10 @@ func _pass_to_scene_tree() -> void:
 		occluder_instance.name = "Occluder"
 		var array_occluder := ArrayOccluder3D.new()
 		var array_mesh := occlusion_csg_to_compile[node].bake_static_mesh()
+		for n in array_mesh.get_surface_count():
+			if array_mesh.surface_get_material(n) != null:
+				array_mesh.surface_remove(n)
+				break
 		var vertices := array_mesh.get_faces()
 		var indices: PackedInt32Array
 		indices.resize(vertices.size())
@@ -1133,7 +1183,12 @@ func _pass_to_scene_tree() -> void:
 			nav_region.navigation_mesh = NavigationMesh.new()
 			nav_region.navigation_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 		var nav_collider := CollisionShape3D.new()
-		nav_collider.shape = collision_csg_to_compile[node].bake_static_mesh().create_trimesh_shape()
+		var array_mesh: ArrayMesh = collision_csg_to_compile[node].bake_static_mesh()
+		for n in array_mesh.get_surface_count():
+			if array_mesh.surface_get_material(n) != null:
+				array_mesh.surface_remove(n)
+				break
+		nav_collider.shape = array_mesh.create_trimesh_shape()
 		var nav_static := StaticBody3D.new()
 		nav_static.add_child(nav_collider)
 		nav_region.add_child(nav_static)
