@@ -206,6 +206,16 @@ func _export_to_trenchbroom() -> void:
 	if FGDResourceSaver.new()._save(fgd, "%s/%s"%[config_path, fgd_filename], 0) != OK:
 		printerr("Cannot export trenchbroom config: Error writing FGD to config directory")
 		return
+	# Export @include fgds
+	for path in fgd.get_base_fgd_paths():
+		var base_fgd: FGD = ResourceLoader.load(path)
+		if base_fgd == null:
+			printerr("Issue exporting trenchbroom config: Missing @include FGD to save to config directory")
+			continue
+		var base_filename: String = "%s.fgd"%base_fgd.resource_path.get_file().get_basename()
+		if FGDResourceSaver.new()._save(base_fgd, "%s/%s"%[config_path, base_filename], 0) != OK:
+			printerr("Issue exporting trenchbroom config: Error writing @include FGD to config directory")
+			continue
 	# Export cfg
 	var file := FileAccess.open("%s/GameConfig.cfg"%[config_path], FileAccess.WRITE)
 	if file == null:

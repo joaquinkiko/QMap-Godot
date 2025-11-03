@@ -58,3 +58,17 @@ func load_base_fgds(_depth_check: int = 0) -> void:
 			else:
 				classes[key] = base.classes[key]
 	_has_loaded_base = true
+
+## Returns resource paths base fgds recursively. Don't modify params
+func get_base_fgd_paths(_is_root: bool = true, _depth_check: int = 0) -> PackedStringArray:
+	var output: PackedStringArray
+	if _depth_check > 999 || resource_path.is_empty(): return []
+	for base_fgd in base_fgds:
+		if base_fgd.is_empty(): continue
+		if !ResourceLoader.exists("%s/%s"%[resource_path.get_base_dir(), base_fgd]):
+			continue
+		var base: FGD = ResourceLoader.load("%s/%s"%[resource_path.get_base_dir(), base_fgd])
+		if base == null: continue
+		output = base.get_base_fgd_paths(false)
+	if !_is_root: output.append(resource_path)
+	return output
