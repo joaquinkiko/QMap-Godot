@@ -106,6 +106,10 @@ func spawn_entity(classname: String, properties: Dictionary[StringName, String] 
 				var scene: PackedScene = ResourceLoader.load("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension])
 				if scene != null:
 					node = scene.instantiate()
+			elif entity.classname.replace(".", "/").split("_",false, 1).size() == 2 || ResourceLoader.exists("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension]):
+				var scene: PackedScene = ResourceLoader.load("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension])
+				if scene != null:
+					node = scene.instantiate()
 	if node == null: node = Node3D.new()
 	node.name = entity.classname.capitalize().replace(" ", "")
 	node.set(&"position", _convert_coordinates(entity.origin * settings._scale_factor))
@@ -584,6 +588,13 @@ func _generate_entities(index: int) -> void:
 	for path in settings.get_paths_scenes(map.mods): for extension in ["tscn","scn"]:
 		if ResourceLoader.exists("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension]):
 			var scene: PackedScene = ResourceLoader.load("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension])
+			if scene != null:
+				_entities[entity] = scene.instantiate()
+				_get_target_destinations(entity, _entities[entity])
+				_entities[entity].add_to_group(&"entity")
+				return
+		elif entity.classname.replace(".", "/").split("_",false, 1).size() == 2 || ResourceLoader.exists("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension]):
+			var scene: PackedScene = ResourceLoader.load("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension])
 			if scene != null:
 				_entities[entity] = scene.instantiate()
 				_get_target_destinations(entity, _entities[entity])
