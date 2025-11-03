@@ -223,6 +223,12 @@ func get_parsed_properties(settings: QMapSettings, mods := PackedStringArray([])
 					if ResourceLoader.exists("%s/%s"%[texture_path, raw_value]):
 						value = ResourceLoader.load("%s/%s"%[texture_path, raw_value])
 						break
+					elif FileAccess.file_exists("%s/%s"%[texture_path, raw_value]):
+						var image := Image.load_from_file("%s/%s"%[texture_path, raw_value])
+						if image != null:
+							image.generate_mipmaps()
+							value = ImageTexture.create_from_image(image)
+							break
 			FGDEntityProperty.PropertyType.STUDIO:
 				value = null
 				for model_path in settings.get_paths_models(mods):
@@ -235,6 +241,12 @@ func get_parsed_properties(settings: QMapSettings, mods := PackedStringArray([])
 					if ResourceLoader.exists("%s/%s"%[texture_path, raw_value]):
 						value = ResourceLoader.load("%s/%s"%[texture_path, raw_value])
 						break
+					elif FileAccess.file_exists("%s/%s"%[texture_path, raw_value]):
+						var image := Image.load_from_file("%s/%s"%[texture_path, raw_value])
+						if image != null:
+							image.generate_mipmaps()
+							value = ImageTexture.create_from_image(image)
+							break
 			FGDEntityProperty.PropertyType.SOUND:
 				value = null
 				for audio_path in settings.get_paths_sounds(mods):

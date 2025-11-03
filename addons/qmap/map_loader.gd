@@ -540,11 +540,18 @@ func _find_texture_or_animated(texturename: StringName) -> Texture2D:
 func _find_texture(texturename: StringName) -> Texture2D:
 	var texture_filename: String = texturename.to_lower().validate_filename() # Filesystem safe name
 	var texture_wad_name: String = texturename.to_lower() # Wad safe name
-	## Search filesystem first
+	## Search internal filesystem first
 	for path in settings.get_paths_textures(map.mods): for extension in settings.texture_extensions:
 		if ResourceLoader.exists("%s/%s.%s"%[path, texture_filename, extension]):
 			return ResourceLoader.load("%s/%s.%s"%[path, texture_filename, extension])
-	## Search wads second
+	## Search external filesystem second
+	for path in settings.get_paths_textures(map.mods): for extension in settings.texture_extensions:
+		if FileAccess.file_exists("%s/%s.%s"%[path, texture_filename, extension]):
+			var image := Image.load_from_file("%s/%s.%s"%[path, texture_filename, extension])
+			if image != null:
+				image.generate_mipmaps()
+				return ImageTexture.create_from_image(image)
+	## Search wads third
 	for wad in _wads:
 		if !wad.textures.has(texture_wad_name): continue
 		return wad.textures[texture_wad_name]
