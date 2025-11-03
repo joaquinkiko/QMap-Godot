@@ -111,6 +111,7 @@ func spawn_entity(classname: String, properties: Dictionary[StringName, String] 
 				if scene != null:
 					node = scene.instantiate()
 	if node == null: node = Node3D.new()
+	node.add_to_group(&"entity")
 	node.name = entity.classname.capitalize().replace(" ", "")
 	node.set(&"position", _convert_coordinates(entity.origin * settings._scale_factor))
 	node.set(&"rotation_degrees", entity.angle)
