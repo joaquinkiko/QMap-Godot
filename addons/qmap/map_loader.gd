@@ -594,13 +594,14 @@ func _generate_entities(index: int) -> void:
 				_get_target_destinations(entity, _entities[entity])
 				_entities[entity].add_to_group(&"entity")
 				return
-		elif entity.classname.replace(".", "/").split("_",false, 1).size() == 2 || ResourceLoader.exists("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension]):
-			var scene: PackedScene = ResourceLoader.load("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension])
-			if scene != null:
-				_entities[entity] = scene.instantiate()
-				_get_target_destinations(entity, _entities[entity])
-				_entities[entity].add_to_group(&"entity")
-				return
+		elif entity.classname.replace(".", "/").split("_",false, 1).size() == 2:
+			if ResourceLoader.exists("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension]):
+				var scene: PackedScene = ResourceLoader.load("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension])
+				if scene != null:
+					_entities[entity] = scene.instantiate()
+					_get_target_destinations(entity, _entities[entity])
+					_entities[entity].add_to_group(&"entity")
+					return
 	if entity.brushes.size() > 0:
 		_entities[entity] = StaticBody3D.new()
 	else:
