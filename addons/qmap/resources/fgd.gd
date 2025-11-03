@@ -11,7 +11,8 @@ class_name FGD extends Resource
 ## (white space will be removed)
 @export var classes: Dictionary[String, FGDClass]
 @export_group("Optional")
-## Filenames of [FGD] resources to inheret from (they must be in same directory unless using "base.fgd")
+## Filenames of [FGD] resources to inheret from
+## (they must be in same directory or root directory unless using "base.fgd")
 @export var base_fgds: PackedStringArray
 ## Optional max map size in q-units
 @export var max_map_size : Vector2i
@@ -44,6 +45,8 @@ func load_base_fgds(_depth_check: int = 0) -> void:
 		var path := "%s/%s"%[resource_path.get_base_dir(), base_fgd]
 		if !ResourceLoader.exists(path) && base_fgd == "base.fgd":
 			path = "res://addons/qmap/default_resources/base.fgd"
+		if !ResourceLoader.exists(path):
+			path = "res://%s"%base_fgd
 		if !ResourceLoader.exists(path):
 			printerr("Missing @include %s for %s"%[base_fgds, resource_path])
 			continue
