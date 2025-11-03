@@ -381,14 +381,24 @@ func _include_preloaded_wads() -> void:
 
 ## Fill [member _wads] with map specific wads
 func _load_wads(index: int) -> void:
-	if _current_wad_paths.has("res://%s"%map.wad_paths[index]): return
-	if ResourceLoader.exists("res://%s"%map.wad_paths[index]):
-		if verbose: print("\t\t-Loading WAD: %s"%map.wad_paths[index])
-		var wad: WAD = ResourceLoader.load("res://%s"%map.wad_paths[index])
-		if wad != null:
-			_wads.append(wad)
-			return
-	printerr("\t\t-Missing WAD: %s"%map.wad_paths[index])
+	if map.wad_paths[index].is_absolute_path():
+		if _current_wad_paths.has(map.wad_paths[index]): return
+		if ResourceLoader.exists(map.wad_paths[index]):
+			if verbose: print("\t\t-Loading WAD: %s"%map.wad_paths[index])
+			var wad: WAD = ResourceLoader.load(map.wad_paths[index])
+			if wad != null:
+				_wads.append(wad)
+				return
+		printerr("\t\t-Missing WAD: %s"%map.wad_paths[index])
+	else:
+		if _current_wad_paths.has("res://%s"%map.wad_paths[index]): return
+		if ResourceLoader.exists("res://%s"%map.wad_paths[index]):
+			if verbose: print("\t\t-Loading WAD: %s"%map.wad_paths[index])
+			var wad: WAD = ResourceLoader.load("res://%s"%map.wad_paths[index])
+			if wad != null:
+				_wads.append(wad)
+				return
+		printerr("\t\t-Missing WAD: %s"%map.wad_paths[index])
 
 ## Create materials for [member _materials]
 func _generate_materials(index: int) -> void:
