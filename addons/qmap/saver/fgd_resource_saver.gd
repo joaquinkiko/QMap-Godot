@@ -20,7 +20,7 @@ func _save(resource: Resource, path: String, flags: int) -> Error:
 		file.store_string("\n")
 	# Write @include if present
 	if fgd.base_fgds.size() > 0:
-		for base_fgd in fgd.base_fgds: file.store_string("@include %s\n"%base_fgd)
+		for base_fgd in fgd.base_fgds: file.store_string('@include "%s"\n'%base_fgd)
 		file.store_string("\n")
 	# Write @mapsize if present
 	if fgd.max_map_size != Vector2i.ZERO:

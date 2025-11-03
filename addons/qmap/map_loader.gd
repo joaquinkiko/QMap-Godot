@@ -148,6 +148,7 @@ func get_entities(filter: String) -> Array[Node]:
 
 func _enter_tree() -> void:
 	current = self
+	settings.fgd.load_base_fgds()
 
 func _exit_tree() -> void:
 	if current == self: current = null

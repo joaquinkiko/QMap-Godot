@@ -11,10 +11,12 @@ class_name FGD extends Resource
 ## (white space will be removed)
 @export var classes: Dictionary[String, FGDClass]
 @export_group("Optional")
-## Base [FGD] resources to inheret from (they must be in same directory)
+## Filenames of [FGD] resources to inheret from (they must be in same directory)
 @export var base_fgds: PackedStringArray
 ## Optional max map size in q-units
 @export var max_map_size : Vector2i
+## True if [member base_fgds] have been loaded with [method load_base_fgds]
+var _has_loaded_base: bool = false
 
 ## Recursively returns default property of entity and it's bases. Keep [param _depth_check] at 0.
 func get_default_properties(classname: String, _depth_check: int = 0) -> Dictionary[StringName, String]:
@@ -33,3 +35,26 @@ func get_default_properties(classname: String, _depth_check: int = 0) -> Diction
 				_:
 					output.set(key, classes[classname].properties[key].default_value)
 	return output
+
+## Adds base classes from base_fgds to this FGD. Keep [param _depth_check] at 0
+func load_base_fgds(_depth_check: int = 0) -> void:
+	if _has_loaded_base || _depth_check > 999 || resource_path.is_empty(): return
+	for base_fgd in base_fgds:
+		if base_fgd.is_empty(): continue
+		if !ResourceLoader.exists("%s/%s"%[resource_path.get_base_dir(), base_fgd]):
+			printerr("Missing @include %s for %s"%[base_fgds, resource_path])
+			continue
+		var base: FGD = ResourceLoader.load("%s/%s"%[resource_path.get_base_dir(), base_fgd])
+		if base == null:
+			printerr("Error loading @include %s for %s"%[base_fgds, resource_path])
+			continue
+		base.load_base_fgds(_depth_check + 1)
+		if max_map_size == Vector2i.ZERO: max_map_size = base.max_map_size
+		for key in base.classes.keys():
+			if classes.has(key):
+				for prop_key in base.classes[key].properties:
+					if !classes[key].properties.has(prop_key):
+						classes[key].properties[prop_key] = base.classes[key].properties[prop_key]
+			else:
+				classes[key] = base.classes[key]
+	_has_loaded_base = true

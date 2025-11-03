@@ -23,7 +23,9 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 		elif line.is_empty(): continue
 		else: break
 	# Remove comments for parsing
-	for line: String in contents.split("\n", false):
+	var parsing_contents := contents
+	contents = ""
+	for line: String in parsing_contents.split("\n", false):
 		line = line.split("//", true)[0]
 		if line.is_empty(): continue
 		else: contents += line + "\n"
