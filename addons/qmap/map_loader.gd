@@ -804,9 +804,9 @@ func _generate_meshes(index: int) -> void:
 				brush.mesh.surface_set_material(surface_index, _materials[key])
 				brush.mesh.surface_set_name(surface_index, key)
 		if ignore_arrays[Mesh.ARRAY_VERTEX].size() > 0:
-			if brush.mesh.get_surface_count() != RenderingServer.MAX_MESH_SURFACES:
+			if brush.mesh.get_surface_count() < RenderingServer.MAX_MESH_SURFACES && brush.mesh.get_surface_count() > 0:
 				brush.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ignore_arrays)
-			else:
+			elif brush.mesh.get_surface_count() == RenderingServer.MAX_MESH_SURFACES:
 				print("\t\t-ERROR: Cannot render brush in %s: too many surfaces (over %s)!"%[entity.classname, RenderingServer.MAX_MESH_SURFACES])
 		for face in brush.faces:
 			if _should_collide(face.texture, entity.classname, face.surface_flag, face.content_flag):
