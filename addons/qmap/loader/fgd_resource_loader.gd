@@ -109,6 +109,8 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 				"target_destination":  prop.type = FGDEntityProperty.PropertyType.TARGET_DESTINATION
 				"scale":  prop.type = FGDEntityProperty.PropertyType.SCALE
 				"vector":  prop.type = FGDEntityProperty.PropertyType.VECTOR
+				"res":  prop.type = FGDEntityProperty.PropertyType.RESOURCE
+				"respath":  prop.type = FGDEntityProperty.PropertyType.RESOURCE_PATH
 				_: prop.type = FGDEntityProperty.PropertyType.STRING
 			prop.display_name = r_prop.get_string(3).trim_prefix('"').trim_suffix('"')
 			prop.default_value = r_prop.get_string(4).strip_edges().trim_prefix('"').trim_suffix('"')

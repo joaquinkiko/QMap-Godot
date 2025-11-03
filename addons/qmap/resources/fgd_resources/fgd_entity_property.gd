@@ -33,7 +33,11 @@ enum PropertyType {
 	## Scaling for model or sprite
 	SCALE,
 	## [Vector3]
-	VECTOR
+	VECTOR,
+	## Relative resource path to load resource from
+	RESOURCE,
+	## Relative resource path to grab resource path as [String] from
+	RESOURCE_PATH
 }
 
 @export var type: PropertyType = PropertyType.STRING

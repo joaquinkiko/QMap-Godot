@@ -264,6 +264,25 @@ func get_parsed_properties(settings: QMapSettings, mods := PackedStringArray([])
 				value = StringName(raw_value)
 			FGDEntityProperty.PropertyType.TARGET_DESTINATION:
 				value = StringName(raw_value)
+			FGDEntityProperty.PropertyType.RESOURCE:
+				value = null
+				if raw_value.begins_with("res://"):
+					if ResourceLoader.exists(raw_value):
+						value = ResourceLoader.load(raw_value)
+				else:
+					for base_path in settings.get_paths_base():
+						if ResourceLoader.exists("%s/%s"%[base_path, raw_value]):
+							value = ResourceLoader.load("%s/%s"%[base_path, raw_value])
+							break
+			FGDEntityProperty.PropertyType.RESOURCE_PATH:
+				value = ""
+				if raw_value.begins_with("res://"):
+					if ResourceLoader.exists(raw_value):
+						value = raw_value
+				else:
+					for base_path in settings.get_paths_base():
+						if ResourceLoader.exists("%s/%s"%[base_path, raw_value]):
+							value = "%s/%s"%[base_path, raw_value]
 			_: value = raw_value
 		parsed_properties.set(key, value)
 	return parsed_properties

@@ -86,6 +86,8 @@ func _save(resource: Resource, path: String, flags: int) -> Error:
 					FGDEntityProperty.PropertyType.SCALE: file.store_string("(scale)")
 					FGDEntityProperty.PropertyType.SOUND: file.store_string("(sound)")
 					FGDEntityProperty.PropertyType.VECTOR: file.store_string("(vector)")
+					FGDEntityProperty.PropertyType.RESOURCE: file.store_string("(res)")
+					FGDEntityProperty.PropertyType.RESOURCE_PATH: file.store_string("(respath)")
 					_: file.store_string("(string)")
 				# Write property display name if present
 				if !fgd.classes[key].properties[prop].display_name.is_empty():
