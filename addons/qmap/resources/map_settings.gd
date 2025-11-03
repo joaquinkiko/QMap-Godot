@@ -624,9 +624,9 @@ func find_surface_flag(name: StringName) -> int:
 ## Base paths (including mods)
 func get_paths_base(mods := PackedStringArray([])) -> PackedStringArray:
 	var output: PackedStringArray
-	output.append("res://%s"%[base_path])
 	for mod in mods:
 		output.append("res://%s"%[mod])
+	output.append("res://%s"%[base_path])
 	return output
 
 ## Wad paths (including mods)
