@@ -110,12 +110,6 @@ class_name QMapSettings extends Resource
 @export var worldspawn_sun_shadows: StringName = &"_sun_shadows"
 ## Worldspawn property for defining [DirectionalLight3D] angular distance for soft shadows
 @export var worldspawn_sun_penumbra: StringName = &"_sunlight_penumbra"
-## Worldspawn property for enabling ambient occlusion
-@export var worldspawn_ao_enabled: StringName = &"_dirt"
-## Worldspawn property for enabling ambient occlusion
-@export var worldspawn_ao_intensity: StringName = &"_dirtscale"
-## Worldspawn property for enabling ambient occlusion
-@export var worldspawn_ao_radius: StringName = &"_dirtgain"
 ## Worldspawn property for enabling fog
 @export var worlspawn_fog_enabled: StringName = &"_fog_enabled"
 ## Worldspawn property for setting fog density
@@ -147,12 +141,6 @@ class_name QMapSettings extends Resource
 @export var default_sun_shadows: String = "0"
 ## Default value of [member worldspawn_sun_penumbra]
 @export var default_sun_penumbra: String = "3.0"
-## Default value of [member worldspawn_ao_enabled]
-@export var default_ao_enabled: String = "0"
-## Default value of [member worldspawn_ao_intensity]
-@export var default_ao_intensity: String = "2"
-## Default value of [member worldspawn_ao_radius]
-@export var default_ao_radius: String = "1"
 ## Default value of [member worlspawn_fog_enabled]
 @export var default_fog_enabled: String = "0"
 ## Default value of [member worlspawn_fog_density]

@@ -1271,10 +1271,6 @@ func _worldspawn_generation(properties: Dictionary[StringName, String], node: No
 				color_raw[1].to_float(),
 				color_raw[2].to_float()
 			)
-		# SSAO (could we ever bake AO into mesh during loading?)
-		world_env.environment.ssao_enabled = bool(properties.get(settings.worldspawn_ao_enabled, settings.default_ao_enabled).to_int())
-		world_env.environment.ssao_intensity = properties.get(settings.worldspawn_ao_intensity, settings.default_ao_intensity).to_float()
-		world_env.environment.ssao_radius = properties.get(settings.worldspawn_ao_radius, settings.default_ao_radius).to_float()
 		# Sky material
 		var skyname: String = properties.get(settings.worldspawn_skyname, settings.default_skyname)
 		var sky_texture: Texture2D
