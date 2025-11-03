@@ -9,4 +9,6 @@ match_type = 0
 pattern = "clip"
 default_texture = &""
 properties = 9
+value_property_path = &"value"
+value_places = 0
 metadata/_custom_type_script = "uid://b4wvhedbwsrlj"
