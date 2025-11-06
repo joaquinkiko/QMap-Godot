@@ -20,6 +20,7 @@ class SolidData extends RefCounted:
 		var occlusion_mesh: ArrayMesh
 		var pathfinding_mesh: ArrayMesh
 		var sorted_faces: Dictionary[StringName, Array]
+		var complex_collision_mesh: ArrayMesh
 		func _to_string() -> String: return "BrushData(F: %s)"%faces.size()
 	class FaceData extends RefCounted:
 		var plane: Plane
@@ -89,6 +90,7 @@ var _solid_data: Dictionary[QEntity, SolidData]
 var _target_destinations: Dictionary[StringName, Node]
 var _alphatests: Dictionary[StringName, bool]
 var _nav_regions: Array[NavigationRegion3D]
+var _collision_materials: Dictionary[StringName, Material]
 
 ## Spawns a new entity with specified [param properties] and [param classname]
 func spawn_entity(classname: String, properties: Dictionary[StringName, String] = {}, origin := Vector3.ZERO) -> Node:
@@ -286,6 +288,7 @@ func load_map() -> Error:
 	_alphatests.clear()
 	_target_destinations.clear()
 	_nav_regions.clear()
+	_collision_materials.clear()
 	map = null
 	if verbose: print("Finished generating map in %sms"%(Time.get_ticks_msec() - start_time))
 	progress.emit(1, "Finished")
@@ -329,6 +332,32 @@ func _create_texture_map() -> void:
 			_texture_sizes[mat_name] = settings.default_uv_scale * settings.scaling
 			_alphatests[mat_name] = false
 			registered_materials.append(mat_name)
+	for entity in map.entities: for brush in entity.brushes: for face in brush.faces:
+		var surface_name := _get_collision_surface_name(face.surface_flag, face.contents_flag, face.value, face.texturename)
+		if !_collision_materials.has(surface_name):
+			var material := PlaceholderMaterial.new()
+			material.set_meta(&"surface_name", surface_name)
+			_collision_materials[surface_name] = material
+
+func _get_collision_surface_name(surface_flag: int, contents_flag: int, value: int, texturename: String) -> StringName:
+	var smart_tag: QMapSmartTag
+	for tag in settings.smart_tags:
+		match tag.match_type:
+			QMapSmartTag.MatchType.SURFACE_FLAG:
+				if tag.pattern.to_int() != 0 && surface_flag & tag.pattern.to_int():
+					smart_tag = tag
+					break
+			QMapSmartTag.MatchType.CONTENT_FLAG:
+				if tag.pattern.to_int() != 0 && contents_flag & tag.pattern.to_int():
+					smart_tag = tag
+					break
+			QMapSmartTag.MatchType.MATERIAL:
+				var pattern = tag.pattern.replace("\\*", ASTRSK_ALT_CHAR)
+				if texturename.to_lower().replace("*", ASTRSK_ALT_CHAR).match(pattern.to_lower()):
+					smart_tag = tag
+					break
+	if smart_tag == null: return &"_NULL|%s"%value
+	else: return &"%s|%s"%[smart_tag.name, value]
 
 ## Fill [member _entities] and [member _solid_data]
 func _create_entity_maps() -> void:
@@ -788,6 +817,12 @@ func _generate_meshes(index: int) -> void:
 	path_arrays.resize(Mesh.ARRAY_MAX)
 	ignore_path_arrays.resize(Mesh.ARRAY_MAX)
 	var ignore_material := PlaceholderMaterial.new()
+	var collision_arrays: Dictionary[StringName, Array]
+	var ignore_complex_collision_arrays: Array
+	ignore_complex_collision_arrays.resize(Mesh.ARRAY_MAX)
+	for _collision_surface in _collision_materials.keys():
+		collision_arrays[_collision_surface] = []
+		collision_arrays[_collision_surface].resize(Mesh.ARRAY_MAX)
 	for brush in data.brushes:
 		brush.mesh = ArrayMesh.new()
 		ignore_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
@@ -797,6 +832,9 @@ func _generate_meshes(index: int) -> void:
 		ignore_path_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		occlusion_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		ignore_occlusion_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+		for _collision_surface in _collision_materials.keys():
+			collision_arrays[_collision_surface][Mesh.ARRAY_VERTEX] = PackedVector3Array()
+		ignore_complex_collision_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array()
 		for key in brush.sorted_faces:
 			var surface_index := brush.mesh.get_surface_count()
 			if surface_index == RenderingServer.MAX_MESH_SURFACES:
@@ -823,6 +861,27 @@ func _generate_meshes(index: int) -> void:
 				brush.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ignore_arrays)
 			elif brush.mesh.get_surface_count() == RenderingServer.MAX_MESH_SURFACES:
 				print("\t\t-ERROR: Cannot render brush in %s: too many surfaces (over %s)!"%[entity.classname, RenderingServer.MAX_MESH_SURFACES])
+		for face in brush.faces:
+			if _should_collide(face.texture, entity.classname, face.surface_flag, face.content_flag):
+				var suface_name := _get_collision_surface_name(face.surface_flag, face.content_flag, face.value, face.texture)
+				for i in face.indices:
+					collision_arrays[suface_name][Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
+			else:
+				for i in face.indices:
+					ignore_complex_collision_arrays[Mesh.ARRAY_VERTEX].append(_convert_coordinates(face.vertices[i] - data.origin))
+			var complex_collision_mesh := ArrayMesh.new()
+			for key in collision_arrays.keys():
+				if collision_arrays[key][Mesh.ARRAY_VERTEX].size() > 0:
+					var surface_index := complex_collision_mesh.get_surface_count()
+					if surface_index == RenderingServer.MAX_MESH_SURFACES:
+						print("\t\t-ERROR: Cannot build collision mesh in %s: too many surfaces (over %s)!"%[entity.classname, RenderingServer.MAX_MESH_SURFACES])
+						break
+					complex_collision_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, collision_arrays[key])
+					complex_collision_mesh.surface_set_material(surface_index, _collision_materials[key])
+			if complex_collision_mesh.get_surface_count() > 0 && complex_collision_mesh.get_surface_count() < RenderingServer.MAX_MESH_SURFACES:
+				if ignore_complex_collision_arrays[Mesh.ARRAY_VERTEX].size() > 0:
+					complex_collision_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ignore_complex_collision_arrays)
+			if complex_collision_mesh.get_surface_count() > 0: brush.complex_collision_mesh = complex_collision_mesh
 		for face in brush.faces:
 			if _should_collide(face.texture, entity.classname, face.surface_flag, face.content_flag):
 				for i in face.indices:
@@ -1100,9 +1159,9 @@ func _pass_to_scene_tree() -> void:
 			elif entity.geometry_flags & QEntity.GeometryFlags.CONCAVE_COLLISIONS:
 				var csg_combiner := CSGCombiner3D.new()
 				for brush in data.brushes:
-					if brush.collision_mesh == null: continue
+					if brush.complex_collision_mesh == null: continue
 					var csg_mesh := CSGMesh3D.new()
-					csg_mesh.mesh = brush.collision_mesh
+					csg_mesh.mesh = brush.complex_collision_mesh
 					csg_combiner.add_child(csg_mesh)
 				if csg_combiner.get_child_count() > 0:
 					node.add_child(csg_combiner)
@@ -1157,17 +1216,32 @@ func _pass_to_scene_tree() -> void:
 		csg_to_compile[node].queue_free()
 	# Collision
 	for node in collision_csg_to_compile.keys():
-		var collision_shape := CollisionShape3D.new()
-		collision_shape.debug_color = node_entities[node].get_debug_color(settings.fgd)
-		collision_shape.debug_fill = false
-		collision_shape.name = "TrimeshCollision"
+		#var collision_shape := CollisionShape3D.new()
+		#collision_shape.debug_color = node_entities[node].get_debug_color(settings.fgd)
+		#collision_shape.debug_fill = false
+		#collision_shape.name = "TrimeshCollision"
 		var array_mesh: ArrayMesh = collision_csg_to_compile[node].bake_static_mesh()
+		var to_remove: int = -1
 		for n in array_mesh.get_surface_count():
-			if array_mesh.surface_get_material(n) != null:
-				array_mesh.surface_remove(n)
-				break
-		collision_shape.shape = array_mesh.create_trimesh_shape()
-		node.add_child(collision_shape)
+			if array_mesh.surface_get_material(n).has_meta(&"surface_name"):
+				array_mesh.surface_set_name(n, array_mesh.surface_get_material(n).get_meta(&"surface_name"))
+			else: to_remove = n
+		if to_remove >= 0: array_mesh.surface_remove(to_remove)
+		for n in array_mesh.get_surface_count():
+			var complex_shape := CollisionShape3D.new()
+			complex_shape.debug_color = node_entities[node].get_debug_color(settings.fgd)
+			complex_shape.debug_fill = false
+			var tag_name := array_mesh.surface_get_name(n).split("|")[0]
+			var value := array_mesh.surface_get_name(n).split("|")[1].to_int()
+			complex_shape.set_meta(&"surface_tag", tag_name)
+			complex_shape.set_meta(&"surface_value", value)
+			complex_shape.name = "Trimesh(%s_%s)"%[tag_name, value]
+			complex_shape.shape = ConcavePolygonShape3D.new()
+			complex_shape.shape.set_faces(array_mesh.surface_get_arrays(n)[Mesh.ARRAY_VERTEX])
+			node.add_child(complex_shape)
+		#collision_shape.shape = array_mesh.create_trimesh_shape()
+		#node.add_child(collision_shape)
+		#collision_shape.queue_free()
 		collision_csg_to_compile[node].queue_free()
 	# Occlusion
 	for node in occlusion_csg_to_compile.keys():
