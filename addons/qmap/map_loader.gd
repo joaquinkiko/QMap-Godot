@@ -99,18 +99,11 @@ func spawn_entity(classname: String, properties: Dictionary[StringName, String] 
 	origin *= settings.scaling
 	entity.properties.set(&"origin", "%s %s %s"%[origin.z, origin.x, origin.y])
 	entity.add_base_properties(settings.fgd)
-	if !settings.fgd.classes.has(entity.classname): node = Node.new()
+	var scene := get_scene(entity.classname)
+	if scene == null:
+		node = Node.new()
 	else:
-		for path in settings.get_paths_scenes(map.mods): for extension in ["tscn","scn"]:
-			if ResourceLoader.exists("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension]):
-				var scene: PackedScene = ResourceLoader.load("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension])
-				if scene != null:
-					node = scene.instantiate()
-			elif entity.classname.replace(".", "/").split("_",false, 1).size() == 2 || ResourceLoader.exists("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension]):
-				var scene: PackedScene = ResourceLoader.load("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension])
-				if scene != null:
-					node = scene.instantiate()
-	if node == null: node = Node3D.new()
+		node = scene.instantiate()
 	node.add_to_group(&"entity")
 	node.name = entity.classname.capitalize().replace(" ", "")
 	node.set(&"position", _convert_coordinates(entity.origin * settings._scale_factor))
@@ -150,6 +143,19 @@ func get_entities(filter: String) -> Array[Node]:
 		if node.get_parent() == self || node.get_parent().get_parent() == self:
 			if node.name.match(filter): output.append(node)
 	return output
+
+## Attempts to find scene for classname. Returns null if one cannot be found
+func get_scene(classname: String) -> PackedScene:
+	if !settings.fgd.classes.has(classname): return null
+	for path in settings.get_paths_scenes(map.mods): for extension in ["tscn", "scn"]:
+		if ResourceLoader.exists("%s/%s.%s"%[path, classname, extension]):
+			return ResourceLoader.load("%s/%s.%s"%[path, classname, extension]) as PackedScene
+		elif classname.split("_",false, 1).size() == 2 && ResourceLoader.exists("%s/%s/%s.%s"%[path, classname.split("_",false, 1)[0], classname.split("_",false, 1)[1], extension]):
+			return ResourceLoader.load("%s/%s/%s.%s"%[path, classname.split("_",false, 1)[0], classname.split("_",false, 1)[1], extension]) as PackedScene
+	for base_class in settings.fgd.classes[classname].base_classes:
+		var result := get_scene(base_class)
+		if result != null: return result
+	return null
 
 func _enter_tree() -> void:
 	current = self
@@ -586,36 +592,14 @@ func _detect_alphatest(index: int) -> void:
 ## Generate nodes for entities
 func _generate_entities(index: int) -> void:
 	var entity: QEntity = _entities.keys()[index]
-	if !settings.fgd.classes.has(entity.classname):
-		if entity.brushes.size() > 0:
-			_entities[entity] = StaticBody3D.new()
-		else:
-			_entities[entity] = Node.new()
-		_entities[entity].add_to_group(&"entity")
-		return
-	for path in settings.get_paths_scenes(map.mods): for extension in ["tscn","scn"]:
-		if ResourceLoader.exists("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension]):
-			var scene: PackedScene = ResourceLoader.load("%s/%s.%s"%[path, entity.classname.replace(".", "/"), extension])
-			if scene != null:
-				_entities[entity] = scene.instantiate()
-				_get_target_destinations(entity, _entities[entity])
-				_entities[entity].add_to_group(&"entity")
-				return
-		elif entity.classname.replace(".", "/").split("_",false, 1).size() == 2:
-			if ResourceLoader.exists("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension]):
-				var scene: PackedScene = ResourceLoader.load("%s/%s/%s.%s"%[path, entity.classname.replace(".", "/").split("_",false, 1)[0], entity.classname.replace(".", "/").split("_",false, 1)[1], extension])
-				if scene != null:
-					_entities[entity] = scene.instantiate()
-					_get_target_destinations(entity, _entities[entity])
-					_entities[entity].add_to_group(&"entity")
-					return
-	if entity.brushes.size() > 0:
-		_entities[entity] = StaticBody3D.new()
+	var scene := get_scene(entity.classname)
+	if scene == null:
+		if entity.brushes.size() > 0: _entities[entity] = StaticBody3D.new()
+		else: _entities[entity] = Node.new()
 	else:
-		_entities[entity] = Node3D.new()
+		_entities[entity] = scene.instantiate()
 	_get_target_destinations(entity, _entities[entity])
 	_entities[entity].add_to_group(&"entity")
-	return
 
 ## Checks if node should be added to [member _target_destinations]
 func _get_target_destinations(entity: QEntity, node: Node) -> void:
