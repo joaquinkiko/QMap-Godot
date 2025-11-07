@@ -5,19 +5,20 @@
 @SolidClass = worldspawn : "World entity" []
 @BaseClass = Phong : "Base class for applying phong properties" 
 [
-	_phong(integer) : : 1
+	_phong(integer)
 	_phong_angle(float) : "89.0"
 ]
-@BaseClass = Targetname 
+@BaseClass = Targetname : "Baseclass for giving entity a target source" 
 [
 	targetname(target_source) : "Name"
 ]
-@BaseClass = Target 
+@BaseClass = Target : "Baseclass for giving entity a target destination" 
 [
 	target(target_destination) : "Target"
 ]
 @SolidClass = func_brush : "World geometry rendered seperate from worldspawn" []
-@SolidClass = func_detail : "Non-occluding geometry" []
-@SolidClass = func_illusionary : "Non-colliding geometry" []
-@SolidClass = func_detail_illusionary : "Non-occluding, nor colliding geometry" []
+@SolidClass base(func_brush) = func_detail : "Non-occluding geometry" []
+@SolidClass base(func_brush) = func_illusionary : "Non-colliding geometry" []
+@SolidClass base(func_illusionary, func_detail) = func_detail_illusionary : "Non-occluding, nor colliding geometry" []
+@SolidClass base(func_brush) = func_group []
 
