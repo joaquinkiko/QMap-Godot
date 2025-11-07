@@ -155,6 +155,56 @@ class_name QMapSettings extends Resource
 @export var default_fog_light: String = "1"
 ## Default value of [member worlspawn_fog_sky_affect]
 @export var default_fog_sky_affect: String = "0.1"
+@export_group("General Entity Properties")
+## Entity property for controlling render transparency
+@export var entity_property_transparency: StringName = &"_render_transparency"
+## Entity property for controlling render shadow_casting
+@export var entity_property_shadow_casting: StringName = &"_render_shadows"
+## Entity property for controlling visibility start distance
+@export var entity_property_visibility_begin: StringName = &"_render_range_begin"
+## Entity property for controlling visibility start margin for fading
+@export var entity_property_visibility_begin_margin: StringName = &"_render_range_begin_margin"
+## Entity property for controlling visibility end distance
+@export var entity_property_visibility_end: StringName = &"_render_range_end"
+## Entity property for controlling visibility end margin for fading
+@export var entity_property_visibility_end_margin: StringName = &"_render_range_end_margin"
+## Entity property for controlling visibility fade mode
+@export var entity_property_visibility_fade_mode: StringName = &"_render_fade_mode"
+## Entity property for controlling render layer
+@export var entity_property_render_layer: StringName = &"_render_layer"
+## Entity property for controlling collision layer
+@export var entity_property_collision_layer: StringName = &"_physics_layer"
+## Entity property for controlling collision mask
+@export var entity_property_collision_mask: StringName = &"_physics_mask"
+## Entity property for controlling constant linear velocity
+@export var entity_property_linear_velocity: StringName = &"_physics_linear_velocity"
+## Entity property for controlling constant angular velocity
+@export var entity_property_angular_velocity: StringName = &"_physics_angular_velocity"
+@export_group("General Entity Property Defaults")
+## Default value of [member entity_property_transparency]
+@export var default_entity_transparency: String = "0.0"
+## Default value of [member entity_property_shadow_casting]
+@export var default_entity_shadow_casting: String = "1"
+## Default value of [member entity_property_visibility_begin]
+@export var default_entity_visibility_begin: String = "0.0"
+## Default value of [member entity_property_visibility_begin_margin]
+@export var default_entity_visibility_begin_margin: String = "0.0"
+## Default value of [member entity_property_visibility_end]
+@export var default_entity_visibility_end: String = "0.0"
+## Default value of [member entity_property_visibility_end_margin]
+@export var default_entity_visibility_end_margin: String = "0.0"
+## Default value of [member entity_property_visibility_fade_mode]
+@export var default_entity_visibility_fade_mode: String = "0"
+## Default value of [member entity_property_render_layer]
+@export var default_entity_render_layer: String = "1"
+## Default value of [member entity_property_collision_layer]
+@export var default_entity_collision_layer: String = "1"
+## Default value of [member entity_property_collision_mask]
+@export var default_entity_collision_mask: String = "1"
+## Default value of [member entity_property_linear_velocity]
+@export var default_entity_linear_velocity: String = "0 0 0"
+## Default value of [member entity_property_angular_velocity]
+@export var default_entity_angular_velocity: String = "0 0 0"
 @export_group("Pathfinding")
 ## If true, will generate pathfinding for solid entities
 @export var generate_pathfinding: bool = true

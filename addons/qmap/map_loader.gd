@@ -106,6 +106,8 @@ func spawn_entity(classname: String, properties: Dictionary[StringName, String] 
 		node = Node.new()
 	else:
 		node = scene.instantiate()
+	_get_target_destinations(entity, node, true)
+	_apply_special_entity_properties(node, entity)
 	node.add_to_group(&"entity")
 	node.name = entity.classname.capitalize().replace(" ", "")
 	node.set(&"position", _convert_coordinates(entity.origin * settings._scale_factor))
@@ -628,15 +630,32 @@ func _generate_entities(index: int) -> void:
 	else:
 		_entities[entity] = scene.instantiate()
 	_get_target_destinations(entity, _entities[entity])
+	_apply_special_entity_properties(_entities[entity], entity)
 	_entities[entity].add_to_group(&"entity")
 
+func _apply_special_entity_properties(node: Node, entity: QEntity) -> void:
+	if node is CollisionObject3D:
+		node.collision_layer = entity.properties.get(settings.entity_property_collision_layer, settings.default_entity_collision_layer).to_int()
+		node.collision_mask = entity.properties.get(settings.entity_property_collision_mask, settings.default_entity_collision_mask).to_int()
+	if node is StaticBody3D:
+		var raw: PackedStringArray = entity.properties.get(settings.entity_property_linear_velocity, settings.default_entity_linear_velocity).split(" ", false)
+		if raw.size() == 3:
+			node.constant_linear_velocity.x = raw[0].to_float()
+			node.constant_linear_velocity.y = raw[1].to_float()
+			node.constant_linear_velocity.z = raw[2].to_float()
+		raw = entity.properties.get(settings.entity_property_angular_velocity, settings.default_entity_angular_velocity).split(" ", false)
+		if raw.size() == 3:
+			node.constant_angular_velocity.x = raw[0].to_float()
+			node.constant_angular_velocity.y = raw[1].to_float()
+			node.constant_angular_velocity.z = raw[2].to_float()
+
 ## Checks if node should be added to [member _target_destinations]
-func _get_target_destinations(entity: QEntity, node: Node) -> void:
+func _get_target_destinations(entity: QEntity, node: Node, runtime: bool = false) -> void:
 	if settings.fgd.classes.has(entity.classname):
 		for key in entity.properties.keys():
 			if settings.fgd.classes[entity.classname].properties.has(key):
 				if settings.fgd.classes[entity.classname].properties[key].type == FGDEntityProperty.PropertyType.TARGET_DESTINATION:
-					_target_destinations[entity.properties[key]] = node
+					if !runtime: _target_destinations[entity.properties[key]] = node
 					node.add_to_group(&"target_destination")
 					node.set_meta(&"target_destination", entity.properties[key])
 
@@ -1212,6 +1231,14 @@ func _pass_to_scene_tree() -> void:
 		for n in surfaces_to_delete:
 			mesh_instance.mesh.surface_remove(n)
 		mesh_instance.mesh.shadow_mesh = shadow_mesh
+		mesh_instance.transparency = _entities.find_key(node).properties.get(settings.entity_property_transparency, settings.default_entity_transparency).to_float()
+		mesh_instance.cast_shadow = _entities.find_key(node).properties.get(settings.entity_property_shadow_casting, settings.default_entity_shadow_casting).to_float()
+		mesh_instance.visibility_range_begin = _entities.find_key(node).properties.get(settings.entity_property_visibility_begin, settings.default_entity_visibility_begin).to_float()
+		mesh_instance.visibility_range_begin_margin = _entities.find_key(node).properties.get(settings.entity_property_visibility_begin_margin, settings.default_entity_visibility_begin_margin).to_float()
+		mesh_instance.visibility_range_end = _entities.find_key(node).properties.get(settings.entity_property_visibility_end, settings.default_entity_visibility_end).to_float()
+		mesh_instance.visibility_range_end_margin = _entities.find_key(node).properties.get(settings.entity_property_visibility_end_margin, settings.default_entity_visibility_end_margin).to_float()
+		mesh_instance.visibility_range_fade_mode = _entities.find_key(node).properties.get(settings.entity_property_visibility_fade_mode, settings.default_entity_visibility_fade_mode).to_int()
+		mesh_instance.layers = _entities.find_key(node).properties.get(settings.entity_property_render_layer, settings.default_entity_render_layer).to_int()
 		node.add_child(mesh_instance)
 		csg_to_compile[node].queue_free()
 	# Collision
