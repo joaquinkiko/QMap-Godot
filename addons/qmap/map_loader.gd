@@ -92,6 +92,17 @@ var _alphatests: Dictionary[StringName, bool]
 var _nav_regions: Array[NavigationRegion3D]
 var _collision_materials: Dictionary[StringName, Material]
 
+## Static function to return [PackePackedScene] containing a [MapLoader]
+static func create_map_scene(path: String, map_settings: QMapSettings = null) -> PackedScene:
+	var map_node := MapLoader.new()
+	map_node.map_path = path
+	if map_settings != null: map_node.settings = map_settings
+	if !path.is_empty(): map_node.name = path.get_file().get_basename().to_pascal_case()
+	var scene := PackedScene.new()
+	scene.pack(map_node)
+	map_node.free()
+	return scene
+
 ## Spawns a new entity with specified [param properties] and [param classname]
 func spawn_entity(classname: String, properties: Dictionary[StringName, String] = {}, origin := Vector3.ZERO) -> Node:
 	var entity := QEntity.new()
