@@ -1,5 +1,5 @@
 @tool
-@icon("../icons/qmap.svg")
+@icon("../../icons/qmap.svg")
 ## .wad file resource
 ##
 ## [url]https://developer.valvesoftware.com/wiki/WAD[/url]

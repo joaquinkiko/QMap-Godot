@@ -1,9 +1,9 @@
 [gd_resource type="Resource" script_class="QMapSmartTag" load_steps=2 format=3 uid="uid://bafub5slaqcgs"]
 
-[ext_resource type="Script" uid="uid://b4wvhedbwsrlj" path="res://addons/qmap/resources/smart_tags.gd" id="1_aldsg"]
+[ext_resource type="Script" uid="uid://b4wvhedbwsrlj" path="res://addons/qmap/src/subresources/smart_tags.gd" id="1_sg8pp"]
 
 [resource]
-script = ExtResource("1_aldsg")
+script = ExtResource("1_sg8pp")
 name = &"Liquid"
 match_type = 0
 pattern = "\\**"

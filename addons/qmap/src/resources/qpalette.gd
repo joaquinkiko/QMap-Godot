@@ -1,5 +1,5 @@
 @tool
-@icon("../icons/qmap.svg")
+@icon("../../icons/qmap.svg")
 ## .lmp file resource
 ##
 ## [url]https://quakewiki.org/wiki/.lmp[/url]

@@ -1,5 +1,5 @@
 @tool
-@icon("../icons/qmap.svg")
+@icon("../../icons/qmap.svg")
 ## .fgd (Forge Game Data) file defining entity classes for maps.
 ##
 ## [url]https://developer.valvesoftware.com/wiki/FGD[/url]

@@ -1,5 +1,5 @@
 @tool
-@icon("../icons/qmap.svg")
+@icon("../../icons/qmap.svg")
 ## .map file resource
 ##
 ## [url]https://quakewiki.org/wiki/Quake_Map_Format[/url]

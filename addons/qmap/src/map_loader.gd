@@ -1,6 +1,7 @@
 ## Loads [QMap] as a child of this node
 ##
 ## [url]https://1666186240-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2F-LtVT8pJjInrrHVCovzy%2Fuploads%2FEukkFYJLwfafFXUMpsI2%2FMAPFiles_2001_StefanHajnoczi.pdf?alt=media&token=51471685-bf69-42ae-a015-a474c0b95165[/url]
+@icon("../icons/qmap.svg")
 class_name MapLoader extends Node3D
 
 const VERTEX_MERGE_DISTANCE := 3e-03
