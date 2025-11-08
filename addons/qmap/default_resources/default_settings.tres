@@ -21,7 +21,6 @@ default_uv_scale = Vector2(1, 1)
 unwrap_uvs = false
 soft_map_bounds = AABB(4096, 4096, 4096, -4096, -4096, -4096)
 texture_origin = &"origin"
-empty_textures = Array[StringName]([&"__tb_empty"])
 smart_tags = Array[ExtResource("5_fojrp")]([ExtResource("6_eg1wi"), ExtResource("7_go8lc"), ExtResource("8_0s0x7"), ExtResource("9_fojrp"), ExtResource("10_3ukk4"), ExtResource("11_nidl0")])
 surface_flags = Array[ExtResource("1_eg1wi")]([])
 content_flags = Array[ExtResource("1_eg1wi")]([])
