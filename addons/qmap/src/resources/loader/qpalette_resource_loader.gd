@@ -1,8 +1,9 @@
 @tool
+## [QPalette] resource loader
 class_name QPaletteResourceLoader extends ResourceFormatLoader
 
 func _get_recognized_extensions() -> PackedStringArray:
-	return ["lmp", "LMP"]
+	return ["lmp"]
 
 func _handles_type(type: StringName) -> bool:
 	return ClassDB.is_parent_class(type, "ImageTexture")

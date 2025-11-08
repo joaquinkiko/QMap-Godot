@@ -1,8 +1,9 @@
 @tool
+## [QPalette] resource saver
 class_name QPaletteResourceSaver extends ResourceFormatSaver
 
 func _get_recognized_extensions(resource: Resource) -> PackedStringArray:
-	return ["lmp", "LMP"]
+	return ["lmp"]
 
 func _recognize(resource: Resource) -> bool:
 	return resource is QPalette

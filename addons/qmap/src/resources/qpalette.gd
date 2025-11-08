@@ -9,11 +9,13 @@ class_name QPalette extends ImageTexture
 ## Palette colors
 @export var colors: PackedColorArray
 
+## Returns a new blank palette with number of [member colors] equal to [param size]
 static func new_empty(size: int = 256) -> QPalette:
 	size = maxi(size, 0)
 	var palette := QPalette.new()
 	palette.colors.resize(size)
 	for n in size: palette.colors[n] = Color8(0,0,255)
+	palette.refresh_image()
 	return palette
 
 ## Resets the image portion of the palette. 
