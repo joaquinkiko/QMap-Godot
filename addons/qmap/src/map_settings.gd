@@ -1,5 +1,5 @@
 @tool
-@icon("../../icons/qmap.svg")
+@icon("../icons/qmap.svg")
 class_name QMapSettings extends Resource
 
 ## [FGD] to initialize entities with
