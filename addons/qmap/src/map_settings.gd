@@ -18,8 +18,6 @@ class_name QMapSettings extends Resource
 @export_group("Special Textures")
 ## This texture will be used to identify orign brushes. This also won't create collisions, nor be rendered
 @export var texture_origin: StringName = "origin"
-## These textures will just use the default placeholder
-@export var empty_textures: Array[StringName] = ["__tb_empty"]
 @export var smart_tags: Array[QMapSmartTag]
 @export_group("Face Attributes")
 ## Surface flags in bitflag order (1,2,4...). May have up to 32. Null fields will be treated as unused

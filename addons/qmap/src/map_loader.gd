@@ -472,9 +472,7 @@ func _generate_materials(index: int) -> void:
 				smart_tag = settings.smart_tags[n]
 				break
 		if smart_tag == null || smart_tag.override_material == null: is_override = false
-	## Ignore generation if empty or non-rendered texture
-	for texture in settings.empty_textures:
-		if texturename.to_lower() == texture.to_lower(): return
+	## Ignore generation if non-rendered texture
 	if !show_non_rendered_textures && !_is_render_texture(texturename): return
 	## Find texture and material
 	var texture := _find_texture_or_animated(texturename)
