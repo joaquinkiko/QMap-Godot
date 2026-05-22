@@ -171,6 +171,22 @@ func get_scene(classname: String) -> PackedScene:
 	for base_class in settings.fgd.classes[classname].base_classes:
 		var result := get_scene(base_class)
 		if result != null: return result
+	for path in settings.get_paths_scenes(map.mods):
+		var script: GDScript
+		if ResourceLoader.exists("%s/%s.gd"%[path, classname]):
+			script = ResourceLoader.load("%s/%s.gd"%[path, classname]) as GDScript
+		elif classname.split("_",false, 1).size() == 2 && ResourceLoader.exists("%s/%s/%s.gd"%[path, classname.split("_",false, 1)[0], classname.split("_",false, 1)[1]]):
+			script = ResourceLoader.load("%s/%s/%s.gd"%[path, classname.split("_",false, 1)[0], classname.split("_",false, 1)[1]]) as GDScript
+		if script != null:
+			var base_type := script.get_instance_base_type()
+			if ClassDB.class_exists(base_type):
+				var node := ClassDB.instantiate(base_type)
+				node.set_script(script)
+				var packed_scene := PackedScene.new()
+				var result := packed_scene.pack(node)
+				node.free() # Clean up now that it's packed
+				if result == OK:
+					return packed_scene
 	return null
 
 func _enter_tree() -> void:
