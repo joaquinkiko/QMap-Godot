@@ -72,57 +72,64 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 		entries.append(entry)
 		dir_offset += 32
 	resource.dir_entries = entries
+	# Cache values
+	var disk_size: int
+	var offset: int
 	# Parse entries
 	for entry in entries:
-		if entry[&"disk_size"] == 0: continue
+		disk_size = entry[&"disk_size"]
+		if disk_size == 0: continue
+		offset = entry[&"offset"]
 		# Miptex parsing: https://developer.valvesoftware.com/wiki/Miptex
 		if resource.format == WAD2 && entry[&"type"] == WAD2EntryType.MIP_TEXTURE ||\
 		resource.format == WAD3 && entry[&"type"] == WAD3EntryType.MIP_TEXTURE:
-			var name := data.slice(entry[&"offset"], entry[&"offset"] + 16).get_string_from_ascii()
+			var name := data.slice(offset, offset + 16).get_string_from_ascii()
 			var dimensions := Vector2i(
-				data.decode_u32(entry[&"offset"] + 16),
-				data.decode_u32(entry[&"offset"] + 20)
+				data.decode_u32(offset + 16),
+				data.decode_u32(offset + 20)
 			)
 			var mip_offsets := PackedInt32Array([])
-			for n in 4: mip_offsets.append(data.decode_u32(entry[&"offset"] + 24 + 4*n))
+			for n in 4: mip_offsets.append(data.decode_u32(offset + 24 + 4*n))
 			var mip_map_data: Array[PackedByteArray]
-			var mip_map_level: int = 1
 			mip_map_data.resize(4)
 			for n in mip_map_data.size():
 				mip_map_data[n] = data.slice(
-					entry[&"offset"] + mip_offsets[n],
-					entry[&"offset"] + mip_offsets[n] + (dimensions.x/mip_map_level) * (dimensions.y/mip_map_level)
+					offset + mip_offsets[n],
+					offset + mip_offsets[n] + (dimensions.x >> n) * (dimensions.y >> n) # Divide dimensions by mipmap level
 					)
-				mip_map_level *= 2
 			# For WAD3 grab palette after last mipmap
 			if resource.format == WAD3:
-				var palette_offset: int = entry[&"offset"] + mip_offsets[-1] + (dimensions.x/8) * (dimensions.y/8)
+				# Divide dimensions by 8 using bitshift
+				var palette_offset: int = offset + mip_offsets[-1] + (dimensions.x >> 3) * (dimensions.y >> 3)
 				current_palette.colors.resize(clampi(data.decode_u16(palette_offset), 0, 256))
+				var n3 := 0 # In place of calculating n*3
 				for n in current_palette.colors.size():
 					current_palette.colors[n] = Color8(
-						data.decode_u8(palette_offset + n*3 + 2),
-						data.decode_u8(palette_offset + n*3 + 3),
-						data.decode_u8(palette_offset + n*3 + 4)
+						data.decode_u8(palette_offset + n3 + 2),
+						data.decode_u8(palette_offset + n3 + 3),
+						data.decode_u8(palette_offset + n3 + 4)
 					)
+					n3 += 3
 				current_palette.refresh_image()
 			# Construct texture & mipmaps
 			var image: Image
 			var texture_data: PackedByteArray
 			var mipmaps_to_read: int = 1
 			if USE_WAD_MIPMAPS: mipmaps_to_read = mip_map_data.size()
+			texture_data.resize(dimensions.x * dimensions.y * 4)
+			var w_offset := 0
 			for mip_level in mipmaps_to_read:
 				for n in mip_map_data[mip_level]:
-					texture_data.append_array([
-						current_palette.colors[n].r8,
-						current_palette.colors[n].g8,
-						current_palette.colors[n].b8
-					])
+					texture_data[w_offset] = current_palette.colors[n].r8
+					texture_data[w_offset + 1] = current_palette.colors[n].g8
+					texture_data[w_offset + 2] = current_palette.colors[n].b8
 					if resource.format == WAD2:
-						if n == WAD2_TRANSPARENT_INDEX: texture_data.append(0)
-						else: texture_data.append(255)
+						if n == WAD2_TRANSPARENT_INDEX: texture_data[w_offset + 3] = 0
+						else: texture_data[w_offset + 3] = 255
 					elif resource.format == WAD3: 
-						if current_palette.colors[n] == WAD3_TRANSPARENT_COLOR: texture_data.append(0)
-						else:  texture_data.append(255)
+						if current_palette.colors[n] == WAD3_TRANSPARENT_COLOR: texture_data[w_offset + 3] = 0
+						else: texture_data[w_offset + 3] = 255
+					w_offset += 4
 			image = Image.create_from_data(dimensions.x, dimensions.y, USE_WAD_MIPMAPS, Image.FORMAT_RGBA8, texture_data)
 			if !USE_WAD_MIPMAPS: image.generate_mipmaps()
 			resource.textures[name] = ImageTexture.create_from_image(image)
@@ -133,12 +140,14 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 		elif resource.format == WAD2 && entry[&"type"] == WAD2EntryType.COLOR_PALETTE:
 			var wad_palette := QPalette.new()
 			wad_palette.colors.resize(256)
+			var n3 := 0 # In place of calculating n*3
 			for n in 256:
 				wad_palette.colors[n] = Color8(
-					data.decode_u8(entry[&"offset"] + n*3),
-					data.decode_u8(entry[&"offset"] + n*3 + 1),
-					data.decode_u8(entry[&"offset"] + n*3 + 2)
+					data.decode_u8(offset + n3),
+					data.decode_u8(offset + n3 + 1),
+					data.decode_u8(offset + n3 + 2)
 				)
+				n3 += 3
 			wad_palette.refresh_image(Vector2i(16, 16))
 			if entry[&"name"] == "PALETTE" || resource.palettes.is_empty():
 				current_palette = wad_palette

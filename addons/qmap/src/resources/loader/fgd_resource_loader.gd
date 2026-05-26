@@ -2,6 +2,13 @@
 ## Loader for [FGD]
 class_name FGDResourceLoader extends ResourceFormatLoader
 
+var _include_pattern := RegEx.create_from_string(r'@include\s*"([^"]*)"')
+var _map_size_pattern := RegEx.create_from_string(r"@mapsize\s*\((-?\w*),\s*(-?\w*\))")
+var _entity_pattern := RegEx.create_from_string(r"@(\w+)([^\n=]*)\s*=\s*(\w+)\s*[:\s]\s*([^\n=]*)\s*(\[[^@]*)")
+var _function_pattern := RegEx.create_from_string(r"(\w+)\(([^)]*)\)")
+var _prop_pattern := RegEx.create_from_string(r"(\w+)\((\w+)\)(?:\s*:\s*(\"[^\"]+\"))?(?:\s*:\s*([^\=\n:]+))?(?::\s*(\"[^\"]+\"))?(?:\s*=\s*(\[[\s\S]*?\]))?")
+var _parts_pattern := RegEx.create_from_string(r"(\w+)\s*:\s*\"([^\"]+)\"(?:\s*:\s*([^\n]+))?")
+
 func _get_recognized_extensions() -> PackedStringArray:
 	return ["fgd", "FGD"]
 
@@ -30,21 +37,15 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 		if line.is_empty(): continue
 		else: contents += line + "\n"
 	# Parse @include
-	var include_pattern = RegEx.new()
-	include_pattern.compile(r'@include\s*"([^"]*)"')
-	for r_include in include_pattern.search_all(contents):
+	for r_include in _include_pattern.search_all(contents):
 		resource.base_fgds.append(r_include.get_string(1))
 	# Parse @mapsize
-	var map_size_pattern = RegEx.new()
-	map_size_pattern.compile(r"@mapsize\s*\((-?\w*),\s*(-?\w*\))")
-	for r_map_size in map_size_pattern.search_all(contents):
+	for r_map_size in _map_size_pattern.search_all(contents):
 		if !r_map_size.get_string(1).is_empty() && !r_map_size.get_string(2).is_empty():
 			resource.max_map_size.x = r_map_size.get_string(1).to_int()
 			resource.max_map_size.y = r_map_size.get_string(2).to_int()
 	# Parse entity classes
-	var entity_pattern = RegEx.new()
-	entity_pattern.compile(r"@(\w+)([^\n=]*)\s*=\s*(\w+)\s*[:\s]\s*([^\n=]*)\s*(\[[^@]*)")
-	for r_entity in entity_pattern.search_all(contents):
+	for r_entity in _entity_pattern.search_all(contents):
 		var new_class := FGDClass.new()
 		match r_entity.get_string(1).to_lower():
 			"baseclass": new_class.class_type = FGDClass.ClassType.BASE
@@ -53,9 +54,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			_: continue
 		new_class.description = r_entity.get_string(4).strip_edges().trim_prefix('"').trim_suffix('"')
 		# Pare class helper functions
-		var function_pattern := RegEx.new()
-		function_pattern.compile(r"(\w+)\(([^)]*)\)")
-		for r_func in function_pattern.search_all(r_entity.get_string(2).strip_edges()):
+		for r_func in _function_pattern.search_all(r_entity.get_string(2).strip_edges()):
 			match r_func.get_string(1).to_lower():
 				"base":
 					new_class.base_classes = r_func.get_string(2).strip_edges().replace(",", "").split(" ", false)
@@ -95,9 +94,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 					new_class.includes_sprite = true
 		resource.classes[r_entity.get_string(3)] = new_class
 		# Parse class properties
-		var prop_pattern := RegEx.new()
-		prop_pattern.compile(r"(\w+)\((\w+)\)(?:\s*:\s*(\"[^\"]+\"))?(?:\s*:\s*([^\=\n:]+))?(?::\s*(\"[^\"]+\"))?(?:\s*=\s*(\[[\s\S]*?\]))?")
-		for r_prop in prop_pattern.search_all(r_entity.get_string(5)):
+		for r_prop in _prop_pattern.search_all(r_entity.get_string(5)):
 			var prop := FGDEntityProperty.new()
 			match r_prop.get_string(2).to_lower():
 				"string": prop.type = FGDEntityProperty.PropertyType.STRING
@@ -124,9 +121,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			prop.display_tooltip = r_prop.get_string(5).trim_prefix('"').trim_suffix('"')
 			# Parse choices / flags
 			if !r_prop.get_string(6).strip_edges().is_empty():
-				var parts_pattern := RegEx.new()
-				parts_pattern.compile(r"(\w+)\s*:\s*\"([^\"]+)\"(?:\s*:\s*([^\n]+))?")
-				for r_parts in parts_pattern.search_all(r_prop.get_string(6).strip_edges()):
+				for r_parts in _parts_pattern.search_all(r_prop.get_string(6).strip_edges()):
 					prop.choices[r_parts.get_string(1).strip_edges().to_int()] = r_parts.get_string(2).strip_edges().trim_prefix('"').trim_suffix('"')
 					if !r_parts.get_string(3).strip_edges().is_empty():
 						if bool(r_parts.get_string(3).strip_edges().to_int()): prop.default_flags.append(r_parts.get_string(1).strip_edges().to_int())

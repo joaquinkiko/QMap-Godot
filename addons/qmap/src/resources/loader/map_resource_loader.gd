@@ -2,6 +2,8 @@
 ## Loader for [QMap]
 class_name QMapResourceLoader extends ResourceFormatLoader
 
+var _face_regex := RegEx.create_from_string(r'(\([^\)]*\)|\[[^\]]*\]|"[^"]*"|\S+)')
+
 func _get_recognized_extensions() -> PackedStringArray:
 	return ["map"]
 
@@ -22,10 +24,8 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 	var patch_depth: int = 0
 	var current_entity: QEntity
 	var current_brush: QEntity.Brush
-	var face_regex := RegEx.new()
-	face_regex.compile(r'(\([^\)]*\)|\[[^\]]*\]|"[^"]*"|\S+)')
-	while !file.eof_reached():
-		var line := file.get_line()
+	var file_contents := file.get_as_text()
+	for line in file_contents.split("\n"):
 		line = line.strip_edges()
 		# Parse header
 		if is_in_header:
@@ -45,10 +45,10 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			else:
 				is_in_header = false
 		# Clear comments / check if empty
-		line.split("//", true)[0].strip_edges()
+		line = line.split("//", true)[0].strip_edges()
 		if line.is_empty(): continue
 		# Check opening / closing bracket
-		match line:
+		match line[0]:
 			"{":
 				if is_in_patch:
 					patch_depth += 1
@@ -80,7 +80,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 		# Parse face
 		elif is_in_brush:
 			var face := QEntity.Face.new()
-			var matches := face_regex.search_all(line)
+			var matches := _face_regex.search_all(line)
 			if matches.size() == 9:
 				face.has_surface_flags = false
 			elif matches.size() == 12:
@@ -140,10 +140,9 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			current_brush.faces.append(face)
 		# Parse property
 		elif is_in_entity:
-			if line.split('"', false).size() < 3: continue
-			var key: StringName = line.split('"', false)[0]
-			var contents: String = line.split('"', false)[2]
-			current_entity.properties.set(key, contents)
+			var parts := line.split('"', false)
+			if parts.size() < 3: continue
+			current_entity.properties[StringName(parts[0])] = parts[2]
 	file.close()
 	if Engine.is_editor_hint() && path.begins_with("res://"): 
 		if Engine.get_singleton("EditorInterface").get_editor_settings().get_setting(&"qmap/ignore_map_autosave_dir"):
