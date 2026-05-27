@@ -309,8 +309,11 @@ func load_map() -> Error:
 		for n in _solid_data.size():
 			_unwrap_uvs(n)
 		if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
-	progress.emit(0.9, "Baking pathfinding")
-	await _thread_group_task(_bake_pathfinding, _nav_regions.size(), "Baking pathfinding")
+	if verbose: print("\t-Baking pathfinding...")
+	interval_time = Time.get_ticks_msec()
+	for n in _nav_regions.size():
+		_bake_pathfinding(n)
+	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 	progress.emit(0.99, "Cleaning-up")
 	_current_wad_paths.clear()
 	_wads.clear()
