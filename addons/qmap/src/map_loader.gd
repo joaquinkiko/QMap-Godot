@@ -295,6 +295,8 @@ func load_map() -> Error:
 	await _thread_group_task(_sort_faces, _solid_data.size(), "Sorting faces")
 	progress.emit(0.75, "Generating meshes")
 	await _thread_group_task(_generate_meshes, _solid_data.size(), "Generating meshes")
+	progress.emit(0.9, "Applying properties")
+	await _thread_group_task(_apply_properties, _solid_data.size(), "Applying properties")
 	progress.emit(0.95, "Spawning entities")
 	if verbose: print("\t-Spawning entities...")
 	interval_time = Time.get_ticks_msec()
@@ -1135,6 +1137,36 @@ func _get_tex_uv(face: SolidData.FaceData, vertex: Vector3) -> Vector2:
 		tex_uv /= texture_size
 	return tex_uv
 
+## Apply entity properties
+func _apply_properties(index: int) -> void:
+	var entity: QEntity = _solid_data.keys()[index]
+	var data: SolidData = _solid_data[entity]
+	if entity.classname == "worldspawn":
+		_worldspawn_generation(entity.properties, _entities[entity])
+	var node := _entities[entity]
+	node.name = entity.classname.capitalize().replace(" ", "")
+	# Apply position, rotation, and scale modifications
+	if data != null:
+		node.set(&"position", _convert_coordinates(data.origin))
+	else:
+		node.set(&"position", _convert_coordinates(entity.origin * settings._scale_factor))
+		node.set(&"rotation_degrees", entity.angle)
+		var current_scale = node.get(&"scale")
+		if current_scale != null: node.set(&"scale", current_scale * entity.scale)
+	var parsed_properties := entity.get_parsed_properties(settings, map.mods)
+	for key in parsed_properties.keys():
+		# Set properties on node if they are present in FGD as well
+		if settings.fgd.classes.has(entity.classname) && settings.fgd.classes[entity.classname].properties.has(key):
+			if settings.fgd.classes[entity.classname].properties[key].type == FGDEntityProperty.PropertyType.TARGET_SOURCE:
+				# Update target_destination properties to Node references
+				if _target_destinations.has(parsed_properties[key]):
+					parsed_properties[key] = _target_destinations[parsed_properties[key]]
+				else: parsed_properties[key] = null
+			node.set(key, parsed_properties[key])
+	# Pass parsed_properties to node via _apply_map_properties method
+	if node.has_method(&"_apply_map_properties"):
+		node.call(&"_apply_map_properties", parsed_properties)
+
 func _pass_to_scene_tree() -> void:
 	var original_process_mode := process_mode
 	process_mode = Node.PROCESS_MODE_DISABLED
@@ -1143,38 +1175,11 @@ func _pass_to_scene_tree() -> void:
 	var occlusion_csg_to_compile: Dictionary[Node, CSGCombiner3D]
 	var path_csg_to_compile: Dictionary[Node, CSGCombiner3D]
 	var node_entities: Dictionary[Node, QEntity]
-	# Find worldspawn and apply special properties
-	for entity: QEntity in _entities.keys():
-		if entity.classname == "worldspawn":
-			_worldspawn_generation(entity.properties, _entities[entity])
-			break
 	# Prepare entities for SceneTree
 	for entity: QEntity in _entities.keys():
 		var data: SolidData = _solid_data[entity]
 		var node := _entities[entity]
 		node_entities[node] = entity
-		node.name = entity.classname.capitalize().replace(" ", "")
-		# Apply position, rotation, and scale modifications
-		if data != null:
-			node.set(&"position", _convert_coordinates(data.origin))
-		else:
-			node.set(&"position", _convert_coordinates(entity.origin * settings._scale_factor))
-			node.set(&"rotation_degrees", entity.angle)
-			var current_scale = node.get(&"scale")
-			if current_scale != null: node.set(&"scale", current_scale * entity.scale)
-		var parsed_properties := entity.get_parsed_properties(settings, map.mods)
-		for key in parsed_properties.keys():
-			# Set properties on node if they are present in FGD as well
-			if settings.fgd.classes.has(entity.classname) && settings.fgd.classes[entity.classname].properties.has(key):
-				if settings.fgd.classes[entity.classname].properties[key].type == FGDEntityProperty.PropertyType.TARGET_SOURCE:
-					# Update target_destination properties to Node references
-					if _target_destinations.has(parsed_properties[key]):
-						parsed_properties[key] = _target_destinations[parsed_properties[key]]
-					else: parsed_properties[key] = null
-				node.set(key, parsed_properties[key])
-		# Pass parsed_properties to node via _apply_map_properties method
-		if node.has_method(&"_apply_map_properties"):
-			node.call(&"_apply_map_properties", parsed_properties)
 		# Add mesh
 		if data != null:
 			# Render
