@@ -307,6 +307,8 @@ func load_map() -> Error:
 		for n in _solid_data.size():
 			_unwrap_uvs(n)
 		if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
+	progress.emit(0.9, "Baking pathfinding")
+	await _thread_group_task(_bake_pathfinding, _nav_regions.size(), "Baking pathfinding")
 	progress.emit(0.99, "Cleaning-up")
 	_current_wad_paths.clear()
 	_wads.clear()
@@ -1367,13 +1369,12 @@ func _pass_to_scene_tree() -> void:
 			if func_group_names.has(entity.group_id):
 				node.add_to_group(func_group_names[entity.group_id])
 	if group_nodes: for group_node in func_groups.values(): add_child(group_node, true)
-	# Bake pathfinding
-	for nav_region in _nav_regions:
-		if nav_region == null || nav_region.is_queued_for_deletion(): continue
-		nav_region.bake_navigation_mesh()
-		while nav_region.is_baking(): await get_tree().process_frame
-		for child in nav_region.get_children(): child.queue_free()
-	process_mode = original_process_mode
+
+# Bake pathfinding
+func _bake_pathfinding(index: int) -> void:
+	if _nav_regions[index] == null || _nav_regions[index].is_queued_for_deletion(): return
+	_nav_regions[index].bake_navigation_mesh()
+	for child in _nav_regions[index].get_children(): child.queue_free()
 
 ## Generate special worldspawn node properties
 func _worldspawn_generation(properties: Dictionary[StringName, String], node: Node) -> void:
