@@ -297,6 +297,11 @@ func load_map() -> Error:
 	await _thread_group_task(_generate_meshes, _solid_data.size(), "Generating meshes")
 	progress.emit(0.9, "Applying properties")
 	await _thread_group_task(_apply_properties, _solid_data.size(), "Applying properties")
+	progress.emit(0.95, "Compiling CSG")
+	if verbose: print("\t-Compiling CSG...")
+	interval_time = Time.get_ticks_msec()
+	await _generate_csg()
+	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 	progress.emit(0.95, "Spawning entities")
 	if verbose: print("\t-Spawning entities...")
 	interval_time = Time.get_ticks_msec()
@@ -1170,7 +1175,7 @@ func _apply_properties(index: int) -> void:
 	if node.has_method(&"_apply_map_properties"):
 		node.call(&"_apply_map_properties", parsed_properties)
 
-func _pass_to_scene_tree() -> void:
+func _generate_csg() -> void:
 	var original_process_mode := process_mode
 	process_mode = Node.PROCESS_MODE_DISABLED
 	var csg_to_compile: Dictionary[Node, CSGCombiner3D]
@@ -1349,6 +1354,9 @@ func _pass_to_scene_tree() -> void:
 		nav_region.travel_cost = entity.properties.get(settings.property_nav_travel_cost, "1").to_float()
 		_nav_regions.append(nav_region)
 		path_csg_to_compile[node].queue_free()
+	process_mode = original_process_mode
+
+func _pass_to_scene_tree() -> void:
 	# Define groups and layers
 	var func_groups: Dictionary[int, Node]
 	var func_group_names: Dictionary[int, StringName]
