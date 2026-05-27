@@ -302,18 +302,14 @@ func load_map() -> Error:
 	interval_time = Time.get_ticks_msec()
 	await _generate_csg()
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
+	if settings.unwrap_uvs:
+		progress.emit(0.97, "Unwrapping UVs")
+		await _thread_group_task(_unwrap_uvs, _solid_data.size(), "Unwrapping UVs")
 	progress.emit(0.95, "Spawning entities")
 	if verbose: print("\t-Spawning entities...")
 	interval_time = Time.get_ticks_msec()
 	await _pass_to_scene_tree()
 	if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
-	if settings.unwrap_uvs:
-		if verbose: print("\t-Unwrapping UVs...")
-		interval_time = Time.get_ticks_msec()
-		progress.emit(0.97, "Unwrapping UVs")
-		for n in _solid_data.size():
-			_unwrap_uvs(n)
-		if verbose: print("\t\t-Done in %sms"%(Time.get_ticks_msec() - interval_time))
 	if verbose: print("\t-Baking pathfinding...")
 	interval_time = Time.get_ticks_msec()
 	for n in _nav_regions.size():
