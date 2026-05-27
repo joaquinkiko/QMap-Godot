@@ -1225,7 +1225,7 @@ func _pass_to_scene_tree() -> void:
 					occlusion_csg_to_compile.set(node, csg_combiner)
 				else: csg_combiner.queue_free()
 			# Pathfinding
-			if entity.geometry_flags & QEntity.GeometryFlags.OCCLUSION:
+			if entity.geometry_flags & QEntity.GeometryFlags.NAV_REGION:
 				var csg_combiner := CSGCombiner3D.new()
 				for brush in data.brushes:
 					if brush.pathfinding_mesh == null: continue
@@ -1325,7 +1325,7 @@ func _pass_to_scene_tree() -> void:
 			nav_region.navigation_mesh = NavigationMesh.new()
 			nav_region.navigation_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 		var nav_collider := CollisionShape3D.new()
-		var array_mesh: ArrayMesh = collision_csg_to_compile[node].bake_static_mesh()
+		var array_mesh: ArrayMesh = path_csg_to_compile[node].bake_static_mesh()
 		for n in array_mesh.get_surface_count():
 			if array_mesh.surface_get_material(n) != null:
 				array_mesh.surface_remove(n)
