@@ -53,4 +53,9 @@ Issues and pull requests are welcome — this project is actively evolving, so f
 ## License
  
 Licensed under the [MIT License](LICENSE).
- 
+
+## Support
+
+If you enjoy this project, consider supporting development:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/joaquinkiko)
