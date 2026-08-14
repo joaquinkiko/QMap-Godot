@@ -19,12 +19,13 @@ var local_settings := EditorInterface.get_editor_settings()
 func _enter_tree() -> void:
 	ResourceLoader.add_resource_format_loader(fgd_loader)
 	ResourceSaver.add_resource_format_saver(fgd_saver)
+	ResourceLoader.add_resource_format_loader(lmp_loader)
+	ResourceSaver.add_resource_format_saver(lmp_saver)
 	ResourceLoader.add_resource_format_loader(wad_loader)
 	ResourceSaver.add_resource_format_saver(wad_saver)
 	ResourceLoader.add_resource_format_loader(qmap_loader)
 	ResourceSaver.add_resource_format_saver(qmap_saver)
-	ResourceLoader.add_resource_format_loader(lmp_loader)
-	ResourceSaver.add_resource_format_saver(lmp_saver)
+	
 
 func _exit_tree() -> void:
 	ResourceLoader.remove_resource_format_loader(fgd_loader)
