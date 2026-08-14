@@ -2,7 +2,7 @@
 
 **Lightweight loader & editor for Quake & Source style Maps, Wads, and FGDs**
 
-[![Godot](https://img.shields.io/badge/Godot-4.4%2B-478cbf?logo=godot-engine&logoColor=white)](https://godotengine.org/download)
+[![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot-engine&logoColor=white)](https://godotengine.org/download)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-WIP-orange)](#roadmap)
 
@@ -21,7 +21,7 @@ QMap Godot brings classic id Tech / Source-style level authoring into the Godot 
 
 ## Requirements
  
-- [Godot 4.4+](https://godotengine.org/download)
+- [Godot 4.6+](https://godotengine.org/download)
 
 ## Installation
  
