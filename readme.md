@@ -8,10 +8,10 @@
 
 QMap Godot brings classic id Tech / Source-style level authoring into the Godot editor. Import `.map` geometry, `.wad` textures, and `.fgd` entity definitions directly into your project — no external conversion step required.
  
-<!-- 
-  Todo:
-  ![QMap Godot editor preview](preview.gif)
--->
+![QMap Godot editor preview](docs/preview_quake_e1m2.png)
+
+![QMap Godot editor preview](docs/preview_doom_e1m1.png)
+
 
 ## Features
  
