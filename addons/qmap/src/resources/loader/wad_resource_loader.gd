@@ -1,7 +1,7 @@
 @tool
 class_name WADResourceLoader extends ResourceFormatLoader
 
-const DEFAULT_PALETTE: QPalette = preload("res://addons/qmap/default_resources/palette.lmp")
+const DEFAULT_PALETTE_PATH := "res://addons/qmap/default_resources/palette.lmp"
 const USE_WAD_MIPMAPS := false # Not working for I'll be damned if I know why
 const WAD2_TRANSPARENT_INDEX := 255
 const WAD3_TRANSPARENT_COLOR := Color8(0, 0, 255)
@@ -44,7 +44,7 @@ func _load(path: String, original_path: String, use_sub_threads: bool, cache_mod
 			printerr("Cannot load '%s': is not WAD2 or WAD3 format"%path)
 			return resource
 	# Initialize default palette for WAD2 and ensure it has 256 colors
-	var current_palette := DEFAULT_PALETTE
+	var current_palette := load(DEFAULT_PALETTE_PATH)
 	if resource.format == WAD2:
 		if current_palette == null:
 			current_palette = QPalette.new_empty(256)
