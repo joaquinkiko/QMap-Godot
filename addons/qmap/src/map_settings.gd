@@ -3,7 +3,7 @@
 class_name QMapSettings extends Resource
 
 ## [FGD] to initialize entities with
-@export var fgd: FGD = preload("res://addons/qmap/default_resources/base.fgd")
+@export var fgd: FGD = load("res://addons/qmap/default_resources/base.fgd")
 @export_group("Scaling")
 ## QUnit to Godot scaling ratio
 @export_range(1, 256, 1) var scaling: int = 32
