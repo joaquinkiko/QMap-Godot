@@ -182,7 +182,7 @@ func get_parsed_properties(settings: QMapSettings, mods := PackedStringArray([])
 	for key in to_parse:
 		var raw_value: String = to_parse[key]
 		var value: Variant
-		match fgd_class.properties.get(key, FGDEntityProperty.new()).default_value:
+		match fgd_class.properties.get(key, FGDEntityProperty.new()).type:
 			FGDEntityProperty.PropertyType.INTEGER: 
 				value = raw_value.to_int()
 			FGDEntityProperty.PropertyType.FLOAT: 
