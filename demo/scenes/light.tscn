@@ -1,0 +1,3 @@
+[gd_scene format=3 uid="uid://d1hj57w70p04k"]
+
+[node name="Light" type="OmniLight3D" unique_id=1937730032]

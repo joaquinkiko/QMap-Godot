@@ -1,0 +1,11 @@
+// Demo FGD showing how to add built in Godot Nodes to entity loading.
+
+@include "base.fgd"
+
+@PointClass color(255 255 255) = light 
+[
+	light_energy(float) : "Energy" : "1" 
+	omni_range(float) : "range" : "5" 
+	light_color(color255) : "color" : "255 255 255" 
+]
+

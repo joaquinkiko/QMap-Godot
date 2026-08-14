@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="QMapSettings" format=3 uid="uid://duk8ar02urx6"]
+
+[ext_resource type="Script" uid="uid://c3k46qaa7wx4p" path="res://addons/qmap/src/subresources/face_attribute.gd" id="1_28gfu"]
+[ext_resource type="Script" uid="uid://dosedsdihg1t2" path="res://addons/qmap/src/resources/wad.gd" id="2_36bql"]
+[ext_resource type="Resource" uid="uid://c1au5mc45o402" path="res://demo/demo.fgd" id="3_28gfu"]
+[ext_resource type="Script" uid="uid://c3damu7loj0jq" path="res://addons/qmap/src/map_settings.gd" id="4_486yn"]
+[ext_resource type="Script" uid="uid://h4wufppn35v8" path="res://addons/qmap/src/subresources/smart_tags.gd" id="5_p0yls"]
+
+[resource]
+script = ExtResource("4_486yn")
+fgd = ExtResource("3_28gfu")
+texture_extensions = PackedStringArray("png", "jpg", "jpeg", "bmp", "tga", "exr", "webp")
+material_extensions = PackedStringArray("tres")
+base_path = &"demo"
+animated_texture_prefixes = PackedStringArray("+")
+metadata/_custom_type_script = "uid://c3damu7loj0jq"

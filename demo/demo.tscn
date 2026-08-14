@@ -1,0 +1,113 @@
+[gd_scene format=3 uid="uid://bxhoamsqntwmy"]
+
+[ext_resource type="Script" uid="uid://dp25yhvtggg8l" path="res://addons/qmap/src/map_loader.gd" id="1_twtx7"]
+[ext_resource type="Resource" uid="uid://duk8ar02urx6" path="res://demo/demo_settings.tres" id="2_ytiva"]
+
+[sub_resource type="GDScript" id="GDScript_g1q4x"]
+resource_name = "camera"
+script/source = "extends Camera3D
+## Freelook Camera
+## WASD to move, mouse to look, Shift to speed up, QE for vertical movement.
+ 
+@export var move_speed: float = 10.0
+@export var sprint_multiplier: float = 3.0
+@export var mouse_sensitivity: float = 0.003
+
+const _PITCH_CLAMP := PI / 2.0 - 0.01
+ 
+var _pitch: float = 0.0
+var _yaw: float = 0.0
+var _wish_dir := Vector3.ZERO
+var _speed: float = move_speed
+ 
+func _ready() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+ 
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		if event.keycode == KEY_ESCAPE and event.is_pressed():
+			if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+				Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	elif event is InputEventMouseButton:
+		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
+				Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	
+	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+		_yaw -= event.relative.x * mouse_sensitivity
+		_pitch -= event.relative.y * mouse_sensitivity
+		_pitch = clamp(_pitch, -_PITCH_CLAMP, _PITCH_CLAMP)
+		rotation.x = _pitch
+		rotation.y = _yaw
+ 
+func _process(delta: float) -> void:
+	if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED: return
+	
+	_wish_dir = Vector3.ZERO
+	if Input.is_key_pressed(KEY_W): _wish_dir -= basis.z
+	if Input.is_key_pressed(KEY_S): _wish_dir += basis.z
+	if Input.is_key_pressed(KEY_A): _wish_dir -= basis.x
+	if Input.is_key_pressed(KEY_D): _wish_dir += basis.x
+	if Input.is_key_pressed(KEY_E): _wish_dir += Vector3.UP
+	if Input.is_key_pressed(KEY_Q): _wish_dir -= Vector3.UP
+	_wish_dir = _wish_dir.normalized()
+	
+	if Input.is_key_pressed(KEY_SHIFT):
+		_speed = move_speed * sprint_multiplier
+	else:
+		_speed = move_speed
+	
+	position += _wish_dir * _speed * delta
+ 
+"
+
+[sub_resource type="GDScript" id="GDScript_o7qgi"]
+script/source = "extends Label
+
+@export var update_time: float = 0.25
+@export var map_loader: MapLoader
+
+var base_text: String
+
+var _wait_time: float = 0.0
+var _load_point: int = 0
+
+func _ready() -> void:
+	map_loader.progress.connect(_progress)
+	base_text = text
+
+func _progress(percentage: float, task: String) -> void:
+	if percentage >= 1.0:
+		queue_free()
+		return
+	base_text = task
+
+func _process(delta: float) -> void:
+	_wait_time += delta
+	if _wait_time >= update_time:
+		_wait_time = 0
+		_load_point = (_load_point + 1) % 4
+		text = base_text
+		for n in _load_point:
+			text += \".\"
+"
+
+[node name="Main" type="Node3D" unique_id=1571301320]
+
+[node name="MapLoader" type="Node3D" parent="." unique_id=1235303554]
+script = ExtResource("1_twtx7")
+map_path = "uid://qx2vnuple5ku"
+settings = ExtResource("2_ytiva")
+pause_main_thread_while_loading = false
+metadata/_custom_type_script = "uid://dp25yhvtggg8l"
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=34036125]
+script = SubResource("GDScript_g1q4x")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=850412634]
+
+[node name="LoadingLabel" type="Label" parent="CanvasLayer" unique_id=970432159 node_paths=PackedStringArray("map_loader")]
+offset_right = 40.0
+offset_bottom = 23.0
+text = "Loading"
+script = SubResource("GDScript_o7qgi")
+map_loader = NodePath("../../MapLoader")
