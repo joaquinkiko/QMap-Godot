@@ -33,10 +33,7 @@ QMap Godot brings classic id Tech / Source-style level authoring into the Godot 
 
 Any `.map` editor can be used, including importing directly from old Quake/Source games. My personally preferred editor is [TrenchBroom](https://trenchbroom.github.io/).
 
-<!-- 
-Todo:
-Add details on using and loading .map, .wad, and .fgd files
--->
+A full guide can be viewed [here](docs/howto.md).
  
 ## Roadmap
  
