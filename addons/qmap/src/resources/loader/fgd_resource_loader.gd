@@ -16,7 +16,7 @@ func _handles_type(type: StringName) -> bool:
 	return ClassDB.is_parent_class(type, "Resource")
 
 func _get_resource_type(path: String) -> String:
-	if path.get_extension().to_lower() == "fgd": return "Resource"
+	if path.get_extension().to_lower() == "fgd": return "FGD"
 	else: return ""
 
 func _load(path: String, original_path: String, use_sub_threads: bool, cache_mode: int) -> Variant:

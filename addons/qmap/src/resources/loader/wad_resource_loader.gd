@@ -24,7 +24,7 @@ func _get_recognized_extensions() -> PackedStringArray:
 	return ["wad", "WAD"]
 
 func _handles_type(type: StringName) -> bool:
-	return ClassDB.is_parent_class(type, "Resource")
+	return ClassDB.is_parent_class(type, "WAD")
 
 func _get_resource_type(path: String) -> String:
 	if path.get_extension().to_lower() == "wad": return "Resource"
