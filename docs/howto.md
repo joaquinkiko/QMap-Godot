@@ -7,11 +7,11 @@
 - [Setting Up TrenchBroom](#Setting-Up-TrenchBroom)
 - [Runtime Entity Spawning](#Runtime-Entity-Spawning)
 - [Loading WADs and Palettes Manually](#Loading-WADs-and-Palettes-Manually)
-- [Textures & Materials](#Textures-Materials)
+- [Textures and Materials](#Textures-and-Materials)
 - [Geometry Generation Per Entity](#Geometry-Generation-Per-Entity)
 - [Groups, Layers, and Targets](#Groups-Layers-and-Targets)
-- [Coordinates & Units](#Coordinates-Units)
-- [Tips & Troubleshooting](#Tips-Troubleshooting)
+- [Coordinates and Units](#Coordinates-and-Units)
+- [Tips and Troubleshooting](#Tips-and-Troubleshooting)
 
 ## Quick Start
  
@@ -204,7 +204,7 @@ var wad: WAD = load("res://textures/gfx.wad")
 - `WAD2`-format WADs store colors through a `QPalette` resource (`.lmp`), which the plugin ships a default Quake palette for at `default_resources/palette.lmp`.
 - `WAD3`-formate WADs have their color palettes built in.
  
-## Textures & Materials
+## Textures and Materials
  
 For each unique texture name referenced by a map, QMap Godot resolves a `Texture2D` and a `Material` independently, in this order:
  
@@ -248,13 +248,13 @@ Add your own `QMapSmartTag` entries for engine-specific conventions (a `sky` tex
 - **Origin brushes** — a brush entirely textured with `texture_origin` (`origin` by default) is not rendered or collided, but instead defines that entity's rotation pivot. This is used for rotating doors/platforms/etc. around a point other than their geometric center.
 - **`_phong` / `_phong_angle`** — set on an entity (commonly via the bundled `Phong` FGD base class) to smooth normals across faces within `_phong_angle` degrees of each other, instead of using flat-shaded brush faces.
 
-## Coordinates & Units
+## Coordinates and Units
  
 - Godot Y-up is reconciled with Quake/Source Z-up automatically, you don't need to rotate anything.
 - `QMapSettings.scaling` (default `32`) is the number of Quake units per Godot unit. Raise it if your game feels oversized, lower it if brushes come in tiny.
 - Entity `angle`/`mangle` and `scale` keys are read and applied to the spawned node's `rotation_degrees`/`scale` automatically; `-1`/`-2` for `angle` are treated as the Quake convention for straight up/down.
 
-## Tips & Troubleshooting
+## Tips and Troubleshooting
  
 - **"Missing MapSettings to generate with!"** — `settings` wasn't assigned on the `MapLoader`.
 - **Entities aren't getting scenes** — confirm the classname matches exactly, the scene lives under `<base_path>/<path_scenes>/`, and the class is actually defined in your FGD (undefined classnames fall back to generic nodes).
