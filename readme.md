@@ -1,10 +1,11 @@
+<p align="center"><img src="addons/qmap/icons/icon.png" alt="QMap Icon" width="15%" />
+ 
 # QMap Godot
 
 **Lightweight loader & editor for Quake & Source style Maps, Wads, and FGDs**
 
 [![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot-engine&logoColor=white)](https://godotengine.org/download)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-WIP-orange)](#roadmap)
 
 QMap Godot brings classic id Tech / Source-style level authoring into the Godot editor. Import `.map` geometry, `.wad` textures, and `.fgd` entity definitions directly into your project — no external conversion step required.
  
@@ -31,17 +32,9 @@ QMap Godot brings classic id Tech / Source-style level authoring into the Godot 
 
 ## Usage
 
-Any `.map` editor can be used, including importing directly from old Quake/Source games. My personally preferred editor is [TrenchBroom](https://trenchbroom.github.io/).
+Any `.map` editor can be used, including importing directly from old Quake/Source games. My personally recommended editor is [TrenchBroom](https://trenchbroom.github.io/).
 
-A full guide can be viewed [here](docs/howto.md).
- 
-## Roadmap
- 
-This project is a **work in progress**. Planned/upcoming work:
-
-- [ ] Documentation & example project
-- [ ] Improved entity property inspector
-- [ ] Improved in-editor WAD editing
+Quick start instructions as well as a full guide can be found [here](docs/howto.md).
 
 ## Contributing
  
