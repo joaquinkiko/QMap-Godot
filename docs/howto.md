@@ -3,15 +3,15 @@
 - [Quick Start](#Quick-Start)
 - [The MapLoader](#The-MapLoader)
 - [QMap Settings](#QMap-Settings)
-- [The FGD (Entity Definitions)](#The-FGD-(Entity-Definitions))
+- [The FGD (Entity Definitions)](#The-FGD-Entity-Definitions)
 - [Setting Up TrenchBroom](#Setting-Up-TrenchBroom)
 - [Runtime Entity Spawning](#Runtime-Entity-Spawning)
 - [Loading WADs and Palettes Manually](#Loading-WADs-and-Palettes-Manually)
-- [Textures & Materials](#Textures-&-Materials)
+- [Textures & Materials](#Textures-Materials)
 - [Geometry Generation Per Entity](#Geometry-Generation-Per-Entity)
-- [Groups, Layers, and Targets](#Groups,-Layers,-and-Targets)
-- [Coordinates & Units](#Coordinates-&-Units)
-- [Tips & Troubleshooting](#Tips-&-Troubleshooting)
+- [Groups, Layers, and Targets](#Groups-Layers-and-Targets)
+- [Coordinates & Units](#Coordinates-Units)
+- [Tips & Troubleshooting](#Tips-Troubleshooting)
 
 ## Quick Start
  
