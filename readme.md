@@ -6,6 +6,7 @@
 
 [![Godot](https://img.shields.io/badge/Godot-4.6%2B-478cbf?logo=godot-engine&logoColor=white)](https://godotengine.org/download)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Release](https://img.shields.io/github/v/release/joaquinkiko/QMap-Godot)
 
 QMap Godot brings classic id Tech / Source-style level authoring into the Godot editor. Import `.map` geometry, `.wad` textures, and `.fgd` entity definitions directly into your project — no external conversion step required.
  
